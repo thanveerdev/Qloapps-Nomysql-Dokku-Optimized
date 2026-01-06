@@ -1,0 +1,288 @@
+<section class="qlo-promotion">
+	<style>
+	
+		.qlo-promotion-banner-wrap {
+			background-color: #ffffff;
+			padding: 15px;
+			box-shadow: 0 0 24px -6px #d5d5d5;
+			position: relative;
+		}
+
+		.qlo-promotion-banner-wrap h1 {
+			margin: 0;
+		}
+		.qlo-promotion-banner-wrap p {
+			margin-bottom: 0;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner {
+			display: flex;
+			gap: 26px;
+			justify-content: center;
+			align-items: center;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-offer-tag {
+			width: 190px;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-offer-tag .qlo-avail-text {
+			font-size: 16px;
+			font-weight: 800;
+			color: #ffffff;
+			font-style: italic;
+			position: relative;
+			z-index: 1;
+			width: max-content;
+			margin: auto;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-offer-tag .qlo-avail-text:before {
+			content: '';
+			width: 82px;
+			height: 92px;
+			background-color: #362A58;
+			transform: skewX(330deg) scaleY(cos(0deg));
+			position: absolute;
+			left: -25px;
+			top: -5px;
+			z-index: -1;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-offer-tag .qlo-discount {
+			font-size: 27px;
+			font-style: italic;
+			font-weight: 800;
+			color: #ffffff;
+			padding: 5px 26px;
+			margin-top: 4px;
+			background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='189' height='50' viewBox='0 0 189 50' fill='none'%3e%3cpath d='M24 0H189L165 50H0L24 0Z' fill='%23236EDE'/%3e%3c/svg%3e");
+			background-size: contain;
+			background-repeat: no-repeat;
+			background-position: center;
+			position: relative;
+			z-index: 2;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text {
+			max-width: 622px;
+			text-align: center;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text .qlo-title-wrap {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 8px;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text .qlo-title-wrap h1 {
+			font-size: 47px;
+			font-weight: 800;
+			font-family: 'Inter', sans-serif;
+			color: #000000;
+			line-height: 58px;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text .qlo-promotion-banner-desc {
+			font-size: 16px;
+			font-weight: 400;
+			line-height: 1.5;
+			color: #000000;
+			margin-top: 2px;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-trial-period {
+			text-align: center;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-trial-period .qlo-trial-text {
+			font-size: 16px;
+			color: #383B57;
+			font-weight: 600;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-trial-period .qlo-trial-text .qlo-free-tag {
+			border-radius: 2px;
+			background-color: #EB5757;
+			color: #ffffff;
+			padding: 0 4px;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-trial-period .qlo-try-now-btn {
+			display: inline-block;
+			font-size: 22px;
+			font-weight: 600;
+			color: #ffffff;
+			line-height: 25px;
+			text-decoration: none;
+			padding: 12px 32px;
+			margin-top: 8px;
+			background-color: #219653;
+			border-radius: 5px;
+			transition: .3s ease-in;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-trial-period .qlo-try-now-btn:hover {
+			background-color: #362A58;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-terms-text {
+			position: absolute;
+			right: 12px;
+			bottom: 4px;
+		}
+
+		.qlo-promotion-banner-wrap .qlo-terms-text {
+			font-size: 10px;
+			font-weight: 800;
+			text-decoration: none;
+			font-family: 'Inter', sans-serif;
+			color: #00000080;
+		}
+
+		.qlo-baner-icons .qlo-partner-logo{
+			position: absolute;
+		}
+
+		.qlo-baner-icons .qlo-partner-logo.logo1 {
+			top: 42px;
+			left: 8px
+		}
+
+		.qlo-baner-icons .qlo-partner-logo.logo2 {
+			top: 2px;
+			left: 50px
+		}
+
+		.qlo-baner-icons .qlo-partner-logo.logo3 {
+			top: 12px;
+			right: 56px
+		}
+
+		.qlo-baner-icons .qlo-partner-logo.logo4 {
+			top: 38px;
+			right: 22px;
+		}
+
+		.qlo-baner-icons .qlo-partner-logo.logo5 {
+			bottom: 14px;
+			left: 36px
+		}
+
+		.qlo-baner-icons .qlo-partner-logo.logo6 {
+			bottom: 10px;
+			right: 59px
+		}
+
+		.qlo-close-btn {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+        font-size: 16px;}
+        .qlo-close-btn a {
+            color: #555;
+        }
+
+		@media (max-width: 1420px) {
+			.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text {
+				max-width: 520px;
+			}
+
+			.qlo-baner-icons .qlo-partner-logo.logo1 {
+				top: 54px;
+			}
+
+			.qlo-baner-icons .qlo-partner-logo.logo4 {
+				top: 50px;
+			}
+		}
+
+		@media (max-width: 1280px) {
+
+			.qlo-promotion-banner-wrap {
+				padding: 18px 22px;
+			}
+			.qlo-promotion-banner-wrap .qlo-promotion-banner {
+				flex-direction: column;
+				gap: 24px;
+			}
+
+			.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text {
+				max-width: 100%;
+				padding-top: 10px;
+			}
+
+			.qlo-baner-icons .qlo-partner-logo {
+				position: static;
+			}
+
+			.qlo-baner-icons {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 18px 30px;
+				flex-wrap: wrap;
+				margin-top: 20px;
+			}
+		}
+
+		@media (max-width: 991px) {
+			.qlo-baner-icons {
+				justify-content: center;
+			}
+		}
+
+		@media (max-width: 634px) {
+			.qlo-promotion-banner-wrap {
+				padding: 14px 10px;
+			}
+		}
+
+		@media (max-width: 570px) {
+			.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text .qlo-title-wrap h1 {
+				font-size: 25px;
+				line-height: normal;
+			}
+			.qlo-promotion-banner-wrap .qlo-promotion-banner .qlo-promotion-banner-text .qlo-title-wrap img {
+				width: 45px;
+				height: auto;
+			}
+
+			.qlo-baner-icons {
+				gap: 18px 12px;
+			}
+		}
+	
+	</style>
+	<div class="qlo-promotion-banner-wrap">
+		<div class="qlo-promotion-banner">
+			<div class="qlo-offer-tag">
+				<div class="qlo-avail-text">Avail @</div>
+				<div class="qlo-discount">16.6% off*</div>
+			</div>
+			<div class="qlo-promotion-banner-text">
+				<div class="qlo-title-wrap">
+					<img src="https://api.qloapps.com/assets/img/banner/qlo-logo.png" alt="qloapps">
+					<h1>Channel Manager</h1>
+				</div>
+				<p class="qlo-promotion-banner-desc">Sync your bookings, rates, and inventories in real time with all OTAs & QloApps</p>
+			</div>
+			<div class="qlo-trial-period">
+				<p class="qlo-trial-text">Start 15 Days <span class="qlo-free-tag">Free</span> Trial </p>
+				<a href="https://qloapps.com/channel-manager" target="_blank" class="qlo-try-now-btn">Try It Now</a>
+			</div>
+		</div>
+		<div class="qlo-baner-icons">
+			<img src="https://api.qloapps.com/assets/img/banner/airbnb.png" alt="airbnb" class="qlo-partner-logo logo1">
+			<img src="https://api.qloapps.com/assets/img/banner/mmt.png" alt="make my trip" class="qlo-partner-logo logo2">
+			<img src="https://api.qloapps.com/assets/img/banner/booking-com.png" alt="booking.com" class="qlo-partner-logo logo3">
+			<img src="https://api.qloapps.com/assets/img/banner/agoda.png" alt="agoda" class="qlo-partner-logo logo4">
+			<img src="https://api.qloapps.com/assets/img/banner/g-hotels.png" alt="google hotels" class="qlo-partner-logo logo5">
+			<img src="https://api.qloapps.com/assets/img/banner/expedia.png" alt="expedia" class="qlo-partner-logo logo6">
+		</div>
+		<div class="qlo-terms-text">*T&C</div>
+		<div class="qlo-close-btn"><a href="javascript:void(0)" onclick="closeRecommendation()"><i class="icon icon-close"></i></a></div>
+
+	</div>
+</section>

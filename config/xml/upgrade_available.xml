@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<success><update_available>-1</update_available><latest_availabe>1.6.1.0</latest_availabe><upgrade_url>https://store.webkul.com/qloapps-1-click-upgrade.html</upgrade_url><dash_upgrade_panel>&lt;header class="panel-heading"&gt;
+    &lt;i class="icon icon-refresh"&gt;&lt;/i&gt; QloApps Update
+&lt;/header&gt;
+&lt;section class="upgrade-info"&gt;
+            &lt;p&gt;You come from the future! You are using a more recent version than the latest available!&lt;/p&gt;
+    &lt;/section&gt;</dash_upgrade_panel></success>

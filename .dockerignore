@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+CHANGELOG.txt
+CONTRIBUTING.md
+LICENSE.md
+SECURITY.md
+*.md
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and cache
+log/*
+cache/*
+!cache/.gitkeep
+!log/.gitkeep
+
+# Uploads (will be mounted as volume in production)
+upload/*
+!upload/.gitkeep
+
+# Tests
+tests/
+phpunit.xml
+
+# Development files
+.env.local
+.env.development
+
+# Composer
+composer.lock
+vendor/
+
+# Node modules (if any)
+node_modules/
+
+# Backup files
+*.bak
+*.backup
+*.sql
+*.sql.gz
+

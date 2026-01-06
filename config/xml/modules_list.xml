@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modules_list>
+	<modules type="native" version="1.7.0.0">
+		<module name="hotelreservationsystem"/>
+		<module name="wkabouthotelblock"/>
+		<module name="wkfooteraboutblock"/>
+		<module name="wkfooterlangcurrencyblock"/>
+		<module name="wkfooternotificationblock"/>
+		<module name="wkfooterpaymentblock"/>
+		<module name="wkfooterpaymentinfoblockcontainer"/>
+		<module name="wkhotelfeaturesblock"/>
+		<module name="wkhotelfilterblock"/>
+		<module name="wkhotelroom"/>
+		<module name="wkroomsearchblock"/>
+		<module name="wktestimonialblock"/>
+		<module name="bankwire"/>
+		<module name="blockcart"/>
+		<module name="blockcurrencies"/>
+		<module name="blocklanguages"/>
+		<module name="blockmyaccount"/>
+		<module name="blocknewsletter"/>
+		<module name="blocknavigationmenu"/>
+		<module name="blocksocial"/>
+		<module name="blockuserinfo"/>
+		<module name="cheque"/>
+		<module name="dashactivity"/>
+		<module name="dashavailability"/>
+		<module name="dashgoals"/>
+		<module name="dashguestcycle"/>
+		<module name="dashinsights"/>
+		<module name="dashoccupancy"/>
+		<module name="dashperformance"/>
+		<module name="dashproducts"/>
+		<module name="dashtrends"/>
+		<module name="graphnvd3"/>
+		<module name="pagesnotfound"/>
+		<module name="qlohotelreview"/>
+		<module name="sekeywords"/>
+		<module name="statsbestcategories"/>
+		<module name="statsbestcustomers"/>
+		<module name="statsbestproducts"/>
+		<module name="statsbestvouchers"/>
+		<module name="statscatalog"/>
+		<module name="statscheckup"/>
+		<module name="statsdata"/>
+		<module name="statsequipment"/>
+		<module name="statsforecast"/>
+		<module name="statslive"/>
+		<module name="statsnewsletter"/>
+		<module name="statsorigin"/>
+		<module name="statspersonalinfos"/>
+		<module name="statsproduct"/>
+		<module name="statsregistrations"/>
+		<module name="statssales"/>
+		<module name="qlostatsserviceproducts"/>
+		<module name="statsvisits"/>
+		<module name="qlochannelmanagerconnector"/>
+		<module name="qloautoupgrade"/>
+	</modules>
+	<modules type="disk" version="1.7.0.0">
+		<module name="gridhtml"/>
+		<module name="qlocleaner"/>
+		<module name="qlopaypalcommerce"/>
+	</modules>
+</modules_list>
