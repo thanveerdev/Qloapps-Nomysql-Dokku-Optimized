@@ -124,6 +124,10 @@ RUN mkdir -p /var/www/html/cache/smarty/compile /var/www/html/upload \
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
+# Copy startup security script
+COPY startup-security.sh /usr/local/bin/startup-security.sh
+RUN chmod +x /usr/local/bin/startup-security.sh
+
 # Expose port 80
 EXPOSE 80
 
@@ -131,6 +135,6 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost/ || exit 1
 
-# Start Apache in foreground
-CMD ["apache2-foreground"]
+# Start with security script (renames admin folder and removes install folder)
+CMD ["/usr/local/bin/startup-security.sh"]
 

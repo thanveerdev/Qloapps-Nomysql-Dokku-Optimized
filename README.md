@@ -2,8 +2,8 @@
 
 Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH, or Supervisord. This is a lightweight, production-ready container that connects to external MySQL services via Dokku's MySQL plugin.
 
-**🐳 Docker Hub**: `thanveerdev/qloapps-nomysql-dokku-optimized`  
-**📦 GitHub**: [Repository](https://github.com/thanveerdev/Qloapps-Nomysql-Dokku-Optimized)
+**🐳 Docker Hub**: Available on Docker Hub  
+**📦 GitHub**: Available on GitHub
 
 ## 🚀 Features
 
@@ -73,7 +73,7 @@ git push dokku master
 
 ```bash
 # Pull and deploy the image
-dokku git:from-image qloapps thanveerdev/qloapps-nomysql-dokku-optimized:latest
+dokku git:from-image qloapps your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
 ```
 
 ### 6. Enable SSL (Let's Encrypt)
@@ -123,14 +123,14 @@ dokku config:show qloapps
 
 **Example DATABASE_URL:**
 ```
-mysql://mysql:6b4dabc457ec7d3c@dokku-mysql-qloapps-db:3306/qloapps_db
+mysql://mysql:YOUR_PASSWORD@dokku-mysql-qloapps-db:3306/qloapps_db
 ```
 
 Breaking it down:
 - **Host**: `dokku-mysql-qloapps-db` (use this in "Database server address")
 - **Database**: `qloapps_db` (use this in "Database name")
 - **User**: `mysql` (use this in "Database login")
-- **Password**: `6b4dabc457ec7d3c` (use this in "Database password")
+- **Password**: Extract from your `DATABASE_URL` (use this in "Database password")
 
 **Note:** The installer may automatically detect and fill these fields from `DATABASE_URL`. If not, manually enter them as shown above.
 
@@ -139,7 +139,7 @@ Breaking it down:
 ### Pull the Image
 
 ```bash
-docker pull thanveerdev/qloapps-nomysql-dokku-optimized:latest
+docker pull your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
 ```
 
 ### Run Locally (for testing)
@@ -147,7 +147,7 @@ docker pull thanveerdev/qloapps-nomysql-dokku-optimized:latest
 ```bash
 docker run -d -p 8080:80 \
   -e DATABASE_URL="mysql://user:password@host:3306/database" \
-  thanveerdev/qloapps-nomysql-dokku-optimized:latest
+  your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
 ```
 
 ## 📦 What's Included
@@ -173,19 +173,19 @@ docker run -d -p 8080:80 \
 
 1. **Update source code:**
    ```bash
-   cd /root/qloapps3-deploy
+   cd /path/to/qloapps-repo
    # Update QloApps files from official repository
    # Copy updated files to this directory
    git add .
    git commit -m "Update QloApps to version X.X.X"
-   git push origin master
+   git push origin main
    ```
 
 2. **Rebuild and deploy:**
    ```bash
    # On Dokku server
-   cd /path/to/qloapps3-deploy
-   git push dokku master
+   cd /path/to/qloapps-repo
+   git push dokku main
    ```
 
 3. **Or rebuild from Docker Hub:**
@@ -197,15 +197,15 @@ docker run -d -p 8080:80 \
 
 1. **Build new image:**
    ```bash
-   docker build -t thanveerdev/qloapps-nomysql-dokku-optimized:latest .
-   docker build -t thanveerdev/qloapps-nomysql-dokku-optimized:v1.0.0 .
+   docker build -t your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest .
+   docker build -t your-dockerhub-username/qloapps-nomysql-dokku-optimized:v1.0.0 .
    ```
 
 2. **Push to Docker Hub:**
    ```bash
    docker login
-   docker push thanveerdev/qloapps-nomysql-dokku-optimized:latest
-   docker push thanveerdev/qloapps-nomysql-dokku-optimized:v1.0.0
+   docker push your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
+   docker push your-dockerhub-username/qloapps-nomysql-dokku-optimized:v1.0.0
    ```
 
 ### Database Backups
@@ -323,7 +323,7 @@ dokku ps:report qloapps
 
 ```bash
 # Clone this repository
-git clone https://github.com/thanveerdev/Qloapps-Nomysql-Dokku-Optimized.git
+git clone https://github.com/your-username/Qloapps-Nomysql-Dokku-Optimized.git
 cd Qloapps-Nomysql-Dokku-Optimized
 
 # Build the image
@@ -357,6 +357,7 @@ docker run -d -p 8080:80 \
 - Production error handling (errors not displayed)
 - Proper file permissions set
 - OPcache enabled for performance
+- **Automatic security hardening**: Admin folder is automatically renamed and install folder is removed on container startup
 
 ## 📚 Additional Resources
 
@@ -395,7 +396,6 @@ For issues related to:
 
 ---
 
-**Maintained by**: [Your Name/Organization]  
 **Last Updated**: January 2026  
 **QloApps Version**: 1.7.0.0  
-**Docker Image**: Available on [Docker Hub](https://hub.docker.com/r/thanveerdev/qloapps-nomysql-dokku-optimized)
+**Docker Image**: Available on Docker Hub
