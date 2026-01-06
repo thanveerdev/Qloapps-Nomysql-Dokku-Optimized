@@ -137,12 +137,73 @@ class InstallControllerHttpDatabase extends InstallControllerHttp
         if (!$this->session->database_server) {
             if (file_exists(_PS_ROOT_DIR_.'/config/settings.inc.php')) {
                 @include_once _PS_ROOT_DIR_.'/config/settings.inc.php';
-                $this->database_server = _DB_SERVER_;
-                $this->database_name = _DB_NAME_;
-                $this->database_login = _DB_USER_;
-                $this->database_password = _DB_PASSWD_;
-                $this->database_engine = _MYSQL_ENGINE_;
-                $this->database_prefix = _DB_PREFIX_;
+                // Check if settings.inc.php has default/incorrect values
+                // If so, prefer DATABASE_URL from environment
+                $has_defaults = (_DB_SERVER_ == 'localhost' && _DB_NAME_ == 'qloapps' && _DB_USER_ == 'root' && _DB_PASSWD_ == '');
+                
+                if ($has_defaults && getenv('DATABASE_URL')) {
+                    // Parse DATABASE_URL from environment (Dokku format: mysql://user:password@host:port/database)
+                    $db_url = getenv('DATABASE_URL');
+                    if (preg_match('#^mysql://([^:]+):([^@]+)@([^/]+)/(.+)$#', $db_url, $matches)) {
+                        $this->database_login = $matches[1];
+                        $this->database_password = $matches[2];
+                        $host_port = $matches[3];
+                        $this->database_name = $matches[4];
+                        
+                        // Extract host and port
+                        if (strpos($host_port, ':') !== false) {
+                            list($this->database_server, $port) = explode(':', $host_port, 2);
+                        } else {
+                            $this->database_server = $host_port;
+                        }
+                        
+                        $this->database_engine = defined('_MYSQL_ENGINE_') ? _MYSQL_ENGINE_ : 'InnoDB';
+                        $this->database_prefix = defined('_DB_PREFIX_') ? _DB_PREFIX_ : 'qlo_';
+                    } else {
+                        // Use values from settings.inc.php even if defaults
+                        $this->database_server = _DB_SERVER_;
+                        $this->database_name = _DB_NAME_;
+                        $this->database_login = _DB_USER_;
+                        $this->database_password = _DB_PASSWD_;
+                        $this->database_engine = _MYSQL_ENGINE_;
+                        $this->database_prefix = _DB_PREFIX_;
+                    }
+                } else {
+                    // Use values from settings.inc.php
+                    $this->database_server = _DB_SERVER_;
+                    $this->database_name = _DB_NAME_;
+                    $this->database_login = _DB_USER_;
+                    $this->database_password = _DB_PASSWD_;
+                    $this->database_engine = _MYSQL_ENGINE_;
+                    $this->database_prefix = _DB_PREFIX_;
+                }
+            } elseif (getenv('DATABASE_URL')) {
+                // Parse DATABASE_URL from environment (Dokku format: mysql://user:password@host:port/database)
+                $db_url = getenv('DATABASE_URL');
+                if (preg_match('#^mysql://([^:]+):([^@]+)@([^/]+)/(.+)$#', $db_url, $matches)) {
+                    $this->database_login = $matches[1];
+                    $this->database_password = $matches[2];
+                    $host_port = $matches[3];
+                    $this->database_name = $matches[4];
+                    
+                    // Extract host and port
+                    if (strpos($host_port, ':') !== false) {
+                        list($this->database_server, $port) = explode(':', $host_port, 2);
+                    } else {
+                        $this->database_server = $host_port;
+                    }
+                    
+                    $this->database_engine = 'InnoDB';
+                    $this->database_prefix = 'qlo_';
+                } else {
+                    // Fallback to defaults if DATABASE_URL format is invalid
+                    $this->database_server = 'localhost';
+                    $this->database_name = 'qloapps';
+                    $this->database_login = 'root';
+                    $this->database_password = '';
+                    $this->database_engine = 'InnoDB';
+                    $this->database_prefix = 'qlo_';
+                }
             } else {
                 $this->database_server = 'localhost';
                 $this->database_name = 'qloapps';
