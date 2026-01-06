@@ -18,11 +18,13 @@ if [ -d "$ADMIN_DIR" ] && [ ! -d "$RENAMED_ADMIN_DIR" ]; then
     echo "Access admin panel at: /${ADMIN_FOLDER_NAME}/"
 fi
 
-# Delete install folder if it exists
-if [ -d "$INSTALL_DIR" ]; then
+# Delete install folder if it exists (unless KEEP_INSTALL_FOLDER is set)
+if [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER:-false}" != "true" ]; then
     echo "Removing install folder for security..."
     rm -rf "$INSTALL_DIR"
     echo "Install folder removed successfully"
+elif [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER}" == "true" ]; then
+    echo "Keeping install folder (KEEP_INSTALL_FOLDER=true is set)"
 fi
 
 # Start Apache (original command)
