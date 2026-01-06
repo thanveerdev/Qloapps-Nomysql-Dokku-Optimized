@@ -5,8 +5,8 @@
 set -e
 
 ADMIN_DIR="/var/www/html/admin"
-# Use environment variable ADMIN_FOLDER_NAME or default to a random name
-ADMIN_FOLDER_NAME="${ADMIN_FOLDER_NAME:-admin$(openssl rand -hex 4)}"
+# Use environment variable ADMIN_FOLDER_NAME or default to qlo-admin
+ADMIN_FOLDER_NAME="${ADMIN_FOLDER_NAME:-qlo-admin}"
 RENAMED_ADMIN_DIR="/var/www/html/${ADMIN_FOLDER_NAME}"
 INSTALL_DIR="/var/www/html/install"
 
