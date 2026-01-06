@@ -3,6 +3,12 @@
 .gitignore
 .gitattributes
 
+# Docker files (should not be in container)
+Dockerfile
+.dockerignore
+docker-compose.yml
+.dockerignore
+
 # Documentation
 README.md
 CHANGELOG.txt
@@ -22,13 +28,13 @@ SECURITY.md
 .DS_Store
 Thumbs.db
 
-# Logs and cache
+# Logs and cache (keep structure, exclude contents)
 log/*
+!log/.gitkeep
 cache/*
 !cache/.gitkeep
-!log/.gitkeep
 
-# Uploads (will be mounted as volume in production)
+# Uploads (keep structure, exclude contents)
 upload/*
 !upload/.gitkeep
 
