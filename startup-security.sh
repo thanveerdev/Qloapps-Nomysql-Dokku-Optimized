@@ -18,11 +18,20 @@ if [ -d "$ADMIN_DIR" ] && [ ! -d "$RENAMED_ADMIN_DIR" ]; then
     echo "Access admin panel at: /${ADMIN_FOLDER_NAME}/"
 fi
 
-# Check if installation is complete by looking for config/config.inc.php
+# Check if installation is complete by looking for database configuration
+# QloApps stores database config in settings.inc.php, not config.inc.php
+SETTINGS_FILE="/var/www/html/config/settings.inc.php"
 CONFIG_FILE="/var/www/html/config/config.inc.php"
 INSTALLATION_COMPLETE=false
 
-if [ -f "$CONFIG_FILE" ]; then
+# Check settings.inc.php first (where QloApps stores DB config)
+if [ -f "$SETTINGS_FILE" ]; then
+    # Check if settings file has database connection (installation completed)
+    if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$SETTINGS_FILE" 2>/dev/null; then
+        INSTALLATION_COMPLETE=true
+    fi
+# Fallback: check config.inc.php (for other PrestaShop-based apps)
+elif [ -f "$CONFIG_FILE" ]; then
     # Check if config file has database connection (installation completed)
     if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$CONFIG_FILE" 2>/dev/null; then
         INSTALLATION_COMPLETE=true
