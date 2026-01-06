@@ -8,6 +8,12 @@
 		<br />
 		<?php echo $this->l('Please complete the fields below in order for QloApps to connect to your database. ') ?>
 	</p>
+	<?php if (getenv('DATABASE_URL') || (file_exists(_PS_ROOT_DIR_.'/config/settings.inc.php') && isset($this->database_server) && $this->database_server != 'localhost')): ?>
+		<p style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 12px; margin: 15px 0;">
+			<strong><?php echo $this->l('ℹ️ Pre-filled values detected') ?></strong><br />
+			<?php echo $this->l('Database settings have been automatically detected from your environment. You can modify any of these values below if you need to use different database credentials.') ?>
+		</p>
+	<?php endif; ?>
 
 	<div id="formCheckSQL">
 		<p class="first" style="margin-top: 15px;">

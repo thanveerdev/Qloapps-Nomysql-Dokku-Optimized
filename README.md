@@ -105,7 +105,9 @@ dokku letsencrypt:enable qloapps
 
 **✅ Automatic Detection (Recommended):**
 
-The installer **automatically detects and fills** database credentials from the `DATABASE_URL` environment variable that Dokku sets when you link a MySQL service. When you reach the "System configuration" step, the database form should be pre-filled with the correct values.
+The installer **automatically detects and pre-fills** database credentials from the `DATABASE_URL` environment variable that Dokku sets when you link a MySQL service. When you reach the "System configuration" step, the database form will be pre-filled with the correct values.
+
+**Important:** All database fields are **fully editable**. You can modify any of the pre-filled values if you need to use different database credentials, a different database name, or customize the table prefix. The automatic detection is just a convenience feature to save time - you're not locked into using those values.
 
 **Manual Configuration (if needed):**
 
@@ -143,8 +145,11 @@ Breaking it down:
 **How Automatic Detection Works:**
 
 1. On container startup, `startup-security.sh` parses `DATABASE_URL` and creates a template `config/settings.inc.php` if it doesn't exist
-2. The installer reads `settings.inc.php` and auto-fills the database form
+2. The installer reads `settings.inc.php` and pre-fills the database form with those values
 3. If `settings.inc.php` has default values (localhost, qloapps, root), the installer checks `DATABASE_URL` as a fallback
+4. **You can edit any field** in the database configuration form before proceeding - the pre-filled values are just suggestions
+
+**Note:** If you want to use completely different database settings, simply edit the form fields. The installer will use whatever values you enter, not the pre-filled ones.
 
 ## 🐳 Docker Hub Usage
 
