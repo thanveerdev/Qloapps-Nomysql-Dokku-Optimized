@@ -357,7 +357,10 @@ docker run -d -p 8080:80 \
 - Production error handling (errors not displayed)
 - Proper file permissions set
 - OPcache enabled for performance
-- **Automatic security hardening**: Admin folder is automatically renamed and install folder is removed on container startup
+- **Automatic security hardening**: 
+  - Admin folder is automatically renamed to `qlo-admin` on container startup (like WordPress's `wp-admin`)
+  - Install folder is automatically removed on container startup
+  - To use a custom admin folder name, set: `dokku config:set APP_NAME ADMIN_FOLDER_NAME=your-custom-name`
 
 ## 📚 Additional Resources
 
