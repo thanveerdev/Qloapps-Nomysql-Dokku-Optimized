@@ -98,14 +98,16 @@ RUN chown -R www-data:www-data /var/www/html \
     && find /var/www/html -type d -exec chmod 755 {} \; \
     && find /var/www/html -type f -exec chmod 644 {} \;
 
-# Make cache, log, and upload directories writable
+# Make cache, log, upload, and config directories writable
 RUN mkdir -p /var/www/html/cache /var/www/html/log /var/www/html/upload \
     && chown -R www-data:www-data /var/www/html/cache \
     /var/www/html/log \
     /var/www/html/upload \
+    /var/www/html/config \
     && chmod -R 775 /var/www/html/cache \
     /var/www/html/log \
-    /var/www/html/upload
+    /var/www/html/upload \
+    /var/www/html/config
 
 # Configure Apache virtual host
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
