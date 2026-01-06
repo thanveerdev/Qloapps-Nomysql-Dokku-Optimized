@@ -2,6 +2,9 @@
 
 Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH, or Supervisord. This is a lightweight, production-ready container that connects to external MySQL services via Dokku's MySQL plugin.
 
+**🐳 Docker Hub**: `your-dockerhub-username/qloapps-nomysql-dokku-optimized`  
+**📦 GitHub**: [Repository](https://github.com/your-username/Qloapps-Nomysql-Dokku-Optimized)
+
 ## 🚀 Features
 
 - ✅ **Lightweight**: ~500-600MB (vs 1.36GB for webkul/qloapps_docker)
