@@ -89,10 +89,50 @@ dokku letsencrypt:enable qloapps
 ### 7. Complete QloApps Installation
 
 1. Visit `https://yourdomain.com/install/`
-2. Follow the installation wizard
-3. Use the database credentials from `DATABASE_URL`:
-   - The installer will automatically parse `DATABASE_URL`
-   - Or manually extract: `mysql://user:password@host:3306/database`
+2. Follow the installation wizard through the steps:
+   - Choose your language
+   - Accept license agreements
+   - System compatibility check (should pass all checks)
+   - Website information
+   - **System configuration** (Database setup - see below)
+   - QloApps installation
+
+#### Database Configuration in Installation Wizard
+
+When you reach the "System configuration" step, you'll see the database configuration form. Here's how to fill it out when using Dokku MySQL:
+
+**Default Configuration Fields:**
+
+| Field | Value | Notes |
+|-------|-------|-------|
+| **Database server address** | `dokku-mysql-APP-NAME-db` | Replace `APP-NAME` with your Dokku app name (e.g., `dokku-mysql-qloapps-db`) |
+| **Database name** | `qloapps_db` | Or as configured in your MySQL service |
+| **Database login** | `mysql` | Default user from Dokku MySQL plugin |
+| **Database password** | `[from DATABASE_URL]` | Extract from `dokku config:show APP-NAME \| grep DATABASE_URL` |
+| **Tables prefix** | `qlo_` | Default prefix (can be changed) |
+
+**Quick Way to Get Database Credentials:**
+
+```bash
+# View all environment variables including DATABASE_URL
+dokku config:show qloapps
+
+# The DATABASE_URL format is:
+# mysql://USER:PASSWORD@HOST:3306/DATABASE
+```
+
+**Example DATABASE_URL:**
+```
+mysql://mysql:6b4dabc457ec7d3c@dokku-mysql-qloapps-db:3306/qloapps_db
+```
+
+Breaking it down:
+- **Host**: `dokku-mysql-qloapps-db` (use this in "Database server address")
+- **Database**: `qloapps_db` (use this in "Database name")
+- **User**: `mysql` (use this in "Database login")
+- **Password**: `6b4dabc457ec7d3c` (use this in "Database password")
+
+**Note:** The installer may automatically detect and fill these fields from `DATABASE_URL`. If not, manually enter them as shown above.
 
 ## 🐳 Docker Hub Usage
 
