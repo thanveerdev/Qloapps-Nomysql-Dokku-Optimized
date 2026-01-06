@@ -390,16 +390,24 @@ docker run -d -p 8080:80 \
 
 ### Install Folder Auto-Deletion
 
-The install folder is automatically deleted after installation is complete for security. The system detects installation completion by checking for `config/config.inc.php` with database configuration.
+The install folder is automatically deleted after installation is complete for security. The system uses a background cleanup daemon that monitors installation completion and deletes the folder automatically.
+
+**How It Works:**
+- A background daemon runs continuously and checks every 30 seconds if installation is complete
+- The system detects installation completion by checking for database configuration in `config/settings.inc.php` (or `config/config.inc.php` as fallback)
+- Once installation is detected as complete, the install folder is automatically removed within 30 seconds
+- The daemon exits automatically after successful deletion
 
 **During Installation:**
 - To keep the install folder available during installation, set: `dokku config:set APP_NAME KEEP_INSTALL_FOLDER=true`
 - The install folder will remain accessible until installation is complete
+- The cleanup daemon will automatically start monitoring when `KEEP_INSTALL_FOLDER=true` is set
 
 **After Installation:**
-- Once installation is detected as complete, the install folder is automatically removed on the next container restart
+- Once installation is detected as complete, the install folder is automatically removed within 30 seconds (no restart needed)
 - This happens automatically even if `KEEP_INSTALL_FOLDER=true` was set
 - No manual intervention needed - the system handles it automatically
+- You can monitor the cleanup process via logs: `dokku enter APP_NAME web cat /var/log/install-cleanup.log`
 
 ## 📚 Additional Resources
 
