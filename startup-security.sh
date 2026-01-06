@@ -18,13 +18,33 @@ if [ -d "$ADMIN_DIR" ] && [ ! -d "$RENAMED_ADMIN_DIR" ]; then
     echo "Access admin panel at: /${ADMIN_FOLDER_NAME}/"
 fi
 
-# Delete install folder if it exists (unless KEEP_INSTALL_FOLDER is set)
-if [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER:-false}" != "true" ]; then
-    echo "Removing install folder for security..."
-    rm -rf "$INSTALL_DIR"
-    echo "Install folder removed successfully"
-elif [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER}" == "true" ]; then
-    echo "Keeping install folder (KEEP_INSTALL_FOLDER=true is set)"
+# Check if installation is complete by looking for config/config.inc.php
+CONFIG_FILE="/var/www/html/config/config.inc.php"
+INSTALLATION_COMPLETE=false
+
+if [ -f "$CONFIG_FILE" ]; then
+    # Check if config file has database connection (installation completed)
+    if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$CONFIG_FILE" 2>/dev/null; then
+        INSTALLATION_COMPLETE=true
+    fi
+fi
+
+# Delete install folder logic:
+# 1. Always delete if installation is complete (regardless of KEEP_INSTALL_FOLDER)
+# 2. Delete if KEEP_INSTALL_FOLDER is not set to true
+# 3. Keep only if KEEP_INSTALL_FOLDER=true AND installation is not complete
+if [ -d "$INSTALL_DIR" ]; then
+    if [ "$INSTALLATION_COMPLETE" = true ]; then
+        echo "Installation detected as complete. Removing install folder for security..."
+        rm -rf "$INSTALL_DIR"
+        echo "Install folder removed successfully"
+    elif [ "${KEEP_INSTALL_FOLDER:-false}" != "true" ]; then
+        echo "Removing install folder for security..."
+        rm -rf "$INSTALL_DIR"
+        echo "Install folder removed successfully"
+    else
+        echo "Keeping install folder (KEEP_INSTALL_FOLDER=true is set and installation not complete)"
+    fi
 fi
 
 # Start Apache (original command)
