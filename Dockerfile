@@ -100,6 +100,7 @@ RUN chown -R www-data:www-data /var/www/html \
 
 # Make cache, log, upload, and config directories writable
 RUN mkdir -p /var/www/html/cache /var/www/html/log /var/www/html/upload \
+    /var/www/html/cache/smarty/compile \
     && chown -R www-data:www-data /var/www/html/cache \
     /var/www/html/log \
     /var/www/html/upload \
@@ -108,6 +109,12 @@ RUN mkdir -p /var/www/html/cache /var/www/html/log /var/www/html/upload \
     /var/www/html/log \
     /var/www/html/upload \
     /var/www/html/config
+
+# Create missing index.php files required by installer
+RUN echo '<?php header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); header("Cache-Control: no-store, no-cache, must-revalidate"); header("Cache-Control: post-check=0, pre-check=0", false); header("Pragma: no-cache"); header("Location: ../"); exit;' > /var/www/html/cache/smarty/compile/index.php \
+    && echo '<?php header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); header("Cache-Control: no-store, no-cache, must-revalidate"); header("Cache-Control: post-check=0, pre-check=0", false); header("Pragma: no-cache"); header("Location: ../"); exit;' > /var/www/html/upload/index.php \
+    && chown www-data:www-data /var/www/html/cache/smarty/compile/index.php /var/www/html/upload/index.php \
+    && chmod 644 /var/www/html/cache/smarty/compile/index.php /var/www/html/upload/index.php
 
 # Configure Apache virtual host
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
