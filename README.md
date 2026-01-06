@@ -13,6 +13,7 @@ Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH,
 - ✅ **Production-ready**: PHP 8.1, OPcache enabled, optimized settings
 - ✅ **All required files**: Includes all 22 files needed for installer
 - ✅ **Dokku optimized**: Designed specifically for Dokku deployment
+- ✅ **Auto-security**: Install folder automatically deleted after installation completes
 
 ## 📋 Requirements
 
@@ -54,8 +55,11 @@ dokku config:set qloapps \
   APP_ENV=prod \
   PS_DEV_MODE=0 \
   PS_HOST_MODE=0 \
-  PS_INSTALL_AUTO=0
+  PS_INSTALL_AUTO=0 \
+  KEEP_INSTALL_FOLDER=true
 ```
+
+**Note:** Set `KEEP_INSTALL_FOLDER=true` to keep the install folder available during installation. It will be automatically removed after installation is complete.
 
 ### 5. Deploy the Application
 
@@ -276,14 +280,36 @@ chmod -R 775 /var/www/html/cache /var/www/html/upload /var/www/html/config
 
 The Dockerfile automatically creates all required files. If you see "Not all files were successfully uploaded":
 
-1. Clear browser cache (Ctrl+Shift+R)
-2. Restart installer: `https://yourdomain.com/install/index.php?step=welcome`
-3. Verify files exist:
+1. Ensure `KEEP_INSTALL_FOLDER=true` is set: `dokku config:set qloapps KEEP_INSTALL_FOLDER=true`
+2. Restart the app: `dokku ps:restart qloapps`
+3. Clear browser cache (Ctrl+Shift+R)
+4. Restart installer: `https://yourdomain.com/install/index.php?step=welcome`
+5. Verify files exist:
    ```bash
-   dokku enter qloapps
+   dokku enter qloapps web
    ls -la /var/www/html/cache/smarty/compile/index.php
    ls -la /var/www/html/upload/index.php
+   ls -la /var/www/html/install/
    ```
+
+### Install Folder Missing
+
+If you see "install directory is missing" error:
+
+1. **Set the environment variable:**
+   ```bash
+   dokku config:set qloapps KEEP_INSTALL_FOLDER=true
+   ```
+
+2. **Restart the app:**
+   ```bash
+   dokku ps:restart qloapps
+   ```
+
+3. **Access the installer:**
+   Visit `https://yourdomain.com/install/`
+
+**Note:** The install folder will be automatically removed after installation is complete. You don't need to manually remove it.
 
 ### Performance Issues
 
@@ -359,8 +385,21 @@ docker run -d -p 8080:80 \
 - OPcache enabled for performance
 - **Automatic security hardening**: 
   - Admin folder is automatically renamed to `qlo-admin` on container startup (like WordPress's `wp-admin`)
-  - Install folder is automatically removed on container startup
+  - Install folder is automatically removed after installation is complete
   - To use a custom admin folder name, set: `dokku config:set APP_NAME ADMIN_FOLDER_NAME=your-custom-name`
+
+### Install Folder Auto-Deletion
+
+The install folder is automatically deleted after installation is complete for security. The system detects installation completion by checking for `config/config.inc.php` with database configuration.
+
+**During Installation:**
+- To keep the install folder available during installation, set: `dokku config:set APP_NAME KEEP_INSTALL_FOLDER=true`
+- The install folder will remain accessible until installation is complete
+
+**After Installation:**
+- Once installation is detected as complete, the install folder is automatically removed on the next container restart
+- This happens automatically even if `KEEP_INSTALL_FOLDER=true` was set
+- No manual intervention needed - the system handles it automatically
 
 ## 📚 Additional Resources
 
