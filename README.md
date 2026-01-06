@@ -1,103 +1,358 @@
-<div align="center">
-	<a href="https://www.qloapps.com"><img src="https://forums.qloapps.com/assets/uploads/system/site-logo.png?v=hkl8e1230fo" alt="QloApps"></a>
-	<br>
-	<p>
-		<b>QloApps - An open source and free platform to launch your own hotel booking website</b>
-	</p>
-</div>
+# QloApps - No MySQL Docker Image for Dokku
 
-<p align="center">
-	<a href="https://qloapps.com/download/"><img src="https://img.shields.io/badge/Download-Download%20QloApps%20-brightgreen" alt="Download"></a>
-	<a href="https://docs.qloapps.com/"><img src="https://img.shields.io/badge/Documentation-Blog-yellowgreen" alt="Documentation"></a>
-	<a href="https://forums.qloapps.com/"><img src="https://img.shields.io/badge/Forum-Help%2FSupport-green" alt="Forum"></a>
-	<a href="https://qloapps.com/addons/"><img src="https://img.shields.io/badge/Addons-Plugins-blueviolet" alt="Addons"></a>
-	<a href="https://qloapps.com/contact/"><img src="https://img.shields.io/badge/Contact-Get%20In%20Touch-blue" alt="Contact us"></a>
-	<a href="/LICENSE.md"><img src="https://img.shields.io/badge/License-OSL%20V3-green" alt="License"></a>
-</p>
+Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH, or Supervisord. This is a lightweight, production-ready container that connects to external MySQL services via Dokku's MySQL plugin.
 
-## Topics
-- [Topics](#topics)
-	- [Introduction](#introduction)
-	- [Requirements](#requirements)
-		- [Hosted Server Configurations](#hosted-server-configurations)
-		- [Local Server Configurations](#local-server-configurations)
-	- [Installation and Configuration](#installation-and-configuration)
-	- [License](#license)
-	- [Security Vulnerabilities](#security-vulnerabilities)
-	- [Documentation & Demo](#documentation--demo)
-		- [QloApps Documentation](#qloapps-documentation)
-		- [QloApps Demo](#qloapps-demo)
-	- [Contribute](#contribute)
-	- [Credits](#credits)
+## 🚀 Features
 
+- ✅ **Lightweight**: ~500-600MB (vs 1.36GB for webkul/qloapps_docker)
+- ✅ **No MySQL**: Uses external Dokku MySQL plugin (best practice)
+- ✅ **No SSH/Supervisord**: Minimal attack surface, better security
+- ✅ **Production-ready**: PHP 8.1, OPcache enabled, optimized settings
+- ✅ **All required files**: Includes all 22 files needed for installer
+- ✅ **Dokku optimized**: Designed specifically for Dokku deployment
 
-### Introduction
+## 📋 Requirements
 
-QloApps is one kind of a true open-source hotel reservation system and a booking engine. The system is dedicated to channeling the power of the open-source community to serve the hospitality industry.
+- Dokku installed and configured
+- Dokku MySQL plugin installed
+- Git repository access
+- Docker Hub account (optional, for image distribution)
 
-From small independent hotels to big hotel chains, QloApps is a one-stop solution for all your hotel business needs.
+## 🛠️ Installation on Dokku
 
-You will be able to launch your hotel website, showcase your property and take and manage bookings.
+### 1. Create the Dokku App
 
-### Requirements
+```bash
+dokku apps:create qloapps
+```
 
-In order to install QloApps you will need the following server configurations for hosted and local serves.
-The system compatibility will also be checked by the system with installation and if the server is not compatible then the installation will not move ahead.
+### 2. Create MySQL Service
 
-#### Hosted Server Configurations
+```bash
+# Create MySQL service
+dokku mysql:create qloapps-db
 
-* **Web server**: Apache 1.3, Apache 2.x, Nginx or Microsoft IIS
-* **PHP  version**: PHP 8.1+ to PHP 8.4
-* **MySQL version**:  5.7+ to 8.4 installed with a database created
-* SSH or FTP access (ask your hosting service for your credentials)
-* In the PHP configuration ask your provider to set memory_limit to "128M", upload_max_filesize to "16M" ,    max_execution_time to "500" and allow_url_fopen "on"
-* SSL certificate if you plan to process payments internally (not using PayPal for instance)
-* **Required PHP extensions**: PDO_MySQL, cURL, OpenSSL, SOAP, GD, SimpleXML, DOM, Zip, Phar
+# Link MySQL to your app
+dokku mysql:link qloapps-db qloapps
+```
 
-#### Local Server Configurations
+This automatically sets the `DATABASE_URL` environment variable.
 
-* **Supported operating system**: Windows, Mac, and Linux
-* **A prepared package**: WampServer (for Windows), Xampp (for Windows and Mac) or EasyPHP (for Windows)
-* **Web server**: Apache 1.3, Apache 2.x, Nginx or Microsoft IIS
-* **PHP**: PHP 8.1+ to PHP 8.4
-* **MySQL** 5.7+ to 8.4 installed with a database created
-* In the PHP configuration, set memory_limit to "128M", upload_max_filesize to "16M" and max_execution_time to "500"
-* **Required PHP extensions**: PDO_MySQL, cURL, OpenSSL, SOAP, GD, SimpleXML, DOM, Zip, Phar
+### 3. Configure Domain
 
-### Installation and Configuration
+```bash
+dokku domains:set qloapps yourdomain.com
+```
 
-**1.** You can install QloApps easily after downloading QloApps. There are easy steps for the installation process. Please visit [QloApps Installation Guide](https://qloapps.com/install-qloapps/) and follow the steps for the successful installation.
+### 4. Set Environment Variables
 
-**2.** Or you can install QloApps with docker image. For the docker image of QloApps, please visit [Dockerize image of QloApps](https://hub.docker.com/r/webkul/qloapps_docker) <br>
-* Docker pull command
-~~~
-docker pull webkul/qloapps_docker
-~~~
+```bash
+dokku config:set qloapps \
+  APP_ENV=prod \
+  PS_DEV_MODE=0 \
+  PS_HOST_MODE=0 \
+  PS_INSTALL_AUTO=0
+```
 
-### License
+### 5. Deploy the Application
 
-QloApps Core is licensed under OSL-3.0 and Modules authored by Webkul have their applicable license, LICENSE.md, kept inside their root directories, while other modules are licensed under AFL-3.0.
+#### Option A: Deploy from Git Repository
 
-The online copy of OSL-3.0 can be found at [https://opensource.org/licenses/OSL-3.0](https://opensource.org/licenses/OSL-3.0).
+```bash
+# Add Dokku remote
+git remote add dokku dokku@your-server:qloapps
 
-The online copy of AFL-3.0 can be found at [https://opensource.org/licenses/AFL-3.0](https://opensource.org/licenses/AFL-3.0).
+# Deploy
+git push dokku master
+```
 
-### Security Vulnerabilities
+#### Option B: Deploy from Docker Hub
 
-Please don't disclose security vulnerabilities publicly. If you find any security vulnerability in QloApps then please email us: mailto:support@qloapps.com.
+```bash
+# Pull and deploy the image
+dokku git:from-image qloapps your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
+```
 
-### Documentation & Demo
+### 6. Enable SSL (Let's Encrypt)
 
-#### QloApps Documentation
-[https://docs.qloapps.com](https://docs.qloapps.com)
-#### QloApps Demo
-**Link** : https://demo.qloapps.com </br>
-**username** : demo@demo.com </br>
-**Password** : demodemo </br>
+```bash
+# Set email for Let's Encrypt
+dokku letsencrypt:set qloapps email your-email@example.com
 
-### Contribute
-As a PHP developer who has command on PHP and MySQL and also knows how to use Git or GitHub efficiently, can contribute to code enhancements via pull requests.<br>
-For more information about the contribution process please check **[Contribute to QloApps](/CONTRIBUTING.md)**
+# Enable SSL
+dokku letsencrypt:enable qloapps
+```
 
-### Credits
-Crafted with :heart: at [Webkul](https://webkul.com)
+### 7. Complete QloApps Installation
+
+1. Visit `https://yourdomain.com/install/`
+2. Follow the installation wizard
+3. Use the database credentials from `DATABASE_URL`:
+   - The installer will automatically parse `DATABASE_URL`
+   - Or manually extract: `mysql://user:password@host:3306/database`
+
+## 🐳 Docker Hub Usage
+
+### Pull the Image
+
+```bash
+docker pull your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
+```
+
+### Run Locally (for testing)
+
+```bash
+docker run -d -p 8080:80 \
+  -e DATABASE_URL="mysql://user:password@host:3306/database" \
+  your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
+```
+
+## 📦 What's Included
+
+### PHP Extensions
+- gd, intl, soap, zip, pdo_mysql, mysqli, mbstring, curl
+- opcache, bcmath, exif, xsl, ldap, imagick
+
+### Apache Modules
+- rewrite, headers, expires
+
+### PHP Configuration
+- `upload_max_filesize = 200M`
+- `post_max_size = 400M`
+- `memory_limit = 512M`
+- `max_execution_time = 500`
+- `max_input_vars = 1500`
+- OPcache enabled for performance
+
+## 🔧 Maintenance
+
+### Updating QloApps
+
+1. **Update source code:**
+   ```bash
+   cd /root/qloapps3-deploy
+   # Update QloApps files from official repository
+   # Copy updated files to this directory
+   git add .
+   git commit -m "Update QloApps to version X.X.X"
+   git push origin master
+   ```
+
+2. **Rebuild and deploy:**
+   ```bash
+   # On Dokku server
+   cd /path/to/qloapps3-deploy
+   git push dokku master
+   ```
+
+3. **Or rebuild from Docker Hub:**
+   ```bash
+   dokku ps:rebuild qloapps
+   ```
+
+### Updating Docker Image
+
+1. **Build new image:**
+   ```bash
+   docker build -t your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest .
+   docker build -t your-dockerhub-username/qloapps-nomysql-dokku-optimized:v1.0.0 .
+   ```
+
+2. **Push to Docker Hub:**
+   ```bash
+   docker login
+   docker push your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
+   docker push your-dockerhub-username/qloapps-nomysql-dokku-optimized:v1.0.0
+   ```
+
+### Database Backups
+
+```bash
+# Backup MySQL database
+dokku mysql:export qloapps-db > backup-$(date +%Y%m%d).sql
+
+# Restore from backup
+dokku mysql:import qloapps-db < backup-20260106.sql
+```
+
+### Viewing Logs
+
+```bash
+# Application logs
+dokku logs qloapps
+
+# MySQL logs
+dokku mysql:logs qloapps-db
+```
+
+### Checking Status
+
+```bash
+# App status
+dokku ps:report qloapps
+
+# MySQL status
+dokku mysql:info qloapps-db
+
+# Environment variables
+dokku config:show qloapps
+```
+
+## 🔍 Troubleshooting
+
+### Database Connection Issues
+
+```bash
+# Verify DATABASE_URL is set
+dokku config:show qloapps | grep DATABASE_URL
+
+# Test MySQL connection
+dokku mysql:connect qloapps-db
+
+# Check MySQL service status
+dokku mysql:info qloapps-db
+```
+
+### File Permission Issues
+
+```bash
+# Enter container
+dokku enter qloapps
+
+# Check permissions
+ls -la /var/www/html/cache
+ls -la /var/www/html/upload
+ls -la /var/www/html/config
+
+# Fix if needed (shouldn't be necessary)
+chown -R www-data:www-data /var/www/html/cache /var/www/html/upload /var/www/html/config
+chmod -R 775 /var/www/html/cache /var/www/html/upload /var/www/html/config
+```
+
+### Installer File Check Failing
+
+The Dockerfile automatically creates all required files. If you see "Not all files were successfully uploaded":
+
+1. Clear browser cache (Ctrl+Shift+R)
+2. Restart installer: `https://yourdomain.com/install/index.php?step=welcome`
+3. Verify files exist:
+   ```bash
+   dokku enter qloapps
+   ls -la /var/www/html/cache/smarty/compile/index.php
+   ls -la /var/www/html/upload/index.php
+   ```
+
+### Performance Issues
+
+```bash
+# Check OPcache status
+dokku enter qloapps
+php -i | grep opcache
+
+# Check PHP memory usage
+php -i | grep memory_limit
+
+# Monitor resource usage
+dokku ps:report qloapps
+```
+
+## 📊 Comparison with webkul/qloapps_docker
+
+| Feature | This Image | webkul/qloapps_docker |
+|---------|-----------|----------------------|
+| Image Size | ~500-600MB | ~1.36GB |
+| MySQL Included | ❌ No | ✅ Yes (unused) |
+| SSH Included | ❌ No | ✅ Yes |
+| Supervisord | ❌ No | ✅ Yes |
+| Security | ✅ Better | ⚠️ More attack surface |
+| Resource Usage | ✅ Lower | ⚠️ Higher |
+| Best Practice | ✅ Yes | ⚠️ No |
+
+## 🏗️ Building from Source
+
+### Prerequisites
+
+- Docker installed
+- QloApps source code
+- Basic knowledge of Docker
+
+### Build Steps
+
+```bash
+# Clone this repository
+git clone https://github.com/your-username/Qloapps-Nomysql-Dokku-Optimized.git
+cd Qloapps-Nomysql-Dokku-Optimized
+
+# Build the image
+docker build -t qloapps-optimized:latest .
+
+# Test locally
+docker run -d -p 8080:80 \
+  -e DATABASE_URL="mysql://user:pass@host:3306/db" \
+  qloapps-optimized:latest
+```
+
+## 📝 File Structure
+
+```
+.
+├── Dockerfile              # Main Dockerfile
+├── .dockerignore          # Files to exclude from build
+├── README.md              # This file
+├── cache/                 # Cache directory (created at runtime)
+├── config/                # Configuration files
+├── install/               # Installer files
+├── modules/               # QloApps modules
+├── themes/                # Themes
+└── ...                    # Other QloApps files
+```
+
+## 🔐 Security Notes
+
+- No SSH server in container (use `dokku enter` instead)
+- No MySQL in container (use external service)
+- Production error handling (errors not displayed)
+- Proper file permissions set
+- OPcache enabled for performance
+
+## 📚 Additional Resources
+
+- [QloApps Documentation](https://qloapps.com/documentation/)
+- [Dokku Documentation](https://dokku.com/docs/)
+- [Dokku MySQL Plugin](https://github.com/dokku/dokku-mysql)
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This Docker image is based on QloApps, which is licensed under OSL-3.0.
+
+## ⚠️ Important Notes
+
+- **Always backup your database** before deploying updates
+- **Test in staging** before production deployment
+- **Keep Dokku and plugins updated** for security
+- **Monitor resource usage** especially with multiple instances
+- **Use separate MySQL services** for each QloApps instance (best practice)
+
+## 🆘 Support
+
+For issues related to:
+- **QloApps**: Visit [QloApps Forum](https://forums.qloapps.com/)
+- **Dokku**: Visit [Dokku Documentation](https://dokku.com/docs/)
+- **This Image**: Open an issue on GitHub
+
+---
+
+**Maintained by**: [Your Name/Organization]  
+**Last Updated**: January 2026  
+**QloApps Version**: 1.7.0.0  
+**Docker Image**: Available on [Docker Hub](https://hub.docker.com/r/your-dockerhub-username/qloapps-nomysql-dokku-optimized)
