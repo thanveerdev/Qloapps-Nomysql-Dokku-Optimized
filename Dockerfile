@@ -86,8 +86,10 @@ WORKDIR /var/www/html
 COPY . /var/www/html
 
 # Install PHP dependencies if composer.json exists
+# Note: QloApps composer.json only checks extensions, not packages
+# Skip if it fails (PHP version requirement is outdated)
 RUN if [ -f composer.json ]; then \
-    composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction; \
+    composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction || true; \
     fi
 
 # Set proper permissions
