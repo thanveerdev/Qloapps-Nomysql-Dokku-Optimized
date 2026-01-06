@@ -102,6 +102,7 @@ RUN chown -R www-data:www-data /var/www/html \
 # Ensure cache/smarty/compile directory exists and create required index.php files
 RUN mkdir -p /var/www/html/cache /var/www/html/log /var/www/html/upload \
     /var/www/html/cache/smarty/compile \
+    /var/log \
     && chown -R www-data:www-data /var/www/html/cache \
     /var/www/html/log \
     /var/www/html/upload \
@@ -109,7 +110,10 @@ RUN mkdir -p /var/www/html/cache /var/www/html/log /var/www/html/upload \
     && chmod -R 775 /var/www/html/cache \
     /var/www/html/log \
     /var/www/html/upload \
-    /var/www/html/config
+    /var/www/html/config \
+    && touch /var/log/install-cleanup.log \
+    && chown www-data:www-data /var/log/install-cleanup.log \
+    && chmod 644 /var/log/install-cleanup.log
 
 # Create missing index.php files required by installer (AFTER all COPY operations)
 # These files must exist for the installer's file integrity check
@@ -127,6 +131,10 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Copy startup security script
 COPY startup-security.sh /usr/local/bin/startup-security.sh
 RUN chmod +x /usr/local/bin/startup-security.sh
+
+# Copy cleanup daemon script
+COPY cleanup-install-daemon.sh /usr/local/bin/cleanup-install-daemon.sh
+RUN chmod +x /usr/local/bin/cleanup-install-daemon.sh
 
 # Expose port 80
 EXPOSE 80

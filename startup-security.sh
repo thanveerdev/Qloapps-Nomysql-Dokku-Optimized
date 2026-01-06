@@ -30,10 +30,21 @@ if [ -f "$SETTINGS_FILE" ]; then
     if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$SETTINGS_FILE" 2>/dev/null; then
         INSTALLATION_COMPLETE=true
     fi
-# Fallback: check config.inc.php (for other PrestaShop-based apps)
-elif [ -f "$CONFIG_FILE" ]; then
+fi
+
+# Fallback: check config.inc.php (for other PrestaShop-based apps or if settings.inc.php doesn't exist)
+if [ "$INSTALLATION_COMPLETE" = false ] && [ -f "$CONFIG_FILE" ]; then
     # Check if config file has database connection (installation completed)
     if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$CONFIG_FILE" 2>/dev/null; then
+        INSTALLATION_COMPLETE=true
+    fi
+fi
+
+# Additional check: if install folder doesn't have index.php or installer files, installation likely completed
+# This is a fallback for cases where config files might not have the expected format
+if [ "$INSTALLATION_COMPLETE" = false ] && [ -d "$INSTALL_DIR" ]; then
+    # If install folder exists but has no installer files, assume installation completed
+    if [ ! -f "$INSTALL_DIR/index.php" ] || [ ! -d "$INSTALL_DIR/controllers" ]; then
         INSTALLATION_COMPLETE=true
     fi
 fi
@@ -54,6 +65,15 @@ if [ -d "$INSTALL_DIR" ]; then
     else
         echo "Keeping install folder (KEEP_INSTALL_FOLDER=true is set and installation not complete)"
     fi
+fi
+
+# Start background cleanup daemon to automatically delete install folder after installation
+# This runs in the background and checks periodically if installation is complete
+if [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER:-false}" = "true" ]; then
+    echo "Starting install cleanup daemon to monitor installation completion..."
+    /usr/local/bin/cleanup-install-daemon.sh &
+    CLEANUP_PID=$!
+    echo "Cleanup daemon started (PID: $CLEANUP_PID)"
 fi
 
 # Start Apache (original command)
