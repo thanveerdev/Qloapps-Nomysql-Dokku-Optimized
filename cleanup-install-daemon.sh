@@ -14,27 +14,37 @@ log_message() {
 
 check_installation_complete() {
     local INSTALLATION_COMPLETE=false
+    local DB_HOST DB_NAME DB_USER DB_PASSWORD DB_PREFIX
     
-    # Check settings.inc.php first (where QloApps stores DB config)
+    # Check if database has QloApps tables (actual installation completion)
     if [ -f "$SETTINGS_FILE" ]; then
-        if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$SETTINGS_FILE" 2>/dev/null; then
-            INSTALLATION_COMPLETE=true
+        DB_HOST=$(grep "_DB_SERVER_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_NAME=$(grep "_DB_NAME_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_USER=$(grep "_DB_USER_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_PASSWORD=$(grep "_DB_PASSWD_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_PREFIX=$(grep "_DB_PREFIX_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        
+        # Check if shop table exists (indicates installation completed)
+        if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ]; then
+            # Use PHP to check database tables (more reliable in container)
+            if php -r "
+            require '$SETTINGS_FILE';
+            try {
+                \$pdo = new PDO('mysql:host='._DB_SERVER_.';dbname='._DB_NAME_, _DB_USER_, _DB_PASSWD_);
+                \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'shop\'');
+                exit(\$stmt->rowCount() > 0 ? 0 : 1);
+            } catch (Exception \$e) {
+                exit(1);
+            }
+            " 2>/dev/null; then
+                INSTALLATION_COMPLETE=true
+            fi
         fi
     fi
     
-    # Fallback: check config.inc.php
-    if [ "$INSTALLATION_COMPLETE" = false ] && [ -f "$CONFIG_FILE" ]; then
-        if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$CONFIG_FILE" 2>/dev/null; then
-            INSTALLATION_COMPLETE=true
-        fi
-    fi
-    
-    # Additional check: verify install folder has installer files
-    if [ "$INSTALLATION_COMPLETE" = false ] && [ -d "$INSTALL_DIR" ]; then
-        # If install folder exists but has no installer files, assume installation completed
-        if [ ! -f "$INSTALL_DIR/index.php" ] || [ ! -d "$INSTALL_DIR/controllers" ]; then
-            INSTALLATION_COMPLETE=true
-        fi
+    # Fallback: if install folder doesn't exist, assume installation completed
+    if [ "$INSTALLATION_COMPLETE" = false ] && [ ! -d "$INSTALL_DIR" ]; then
+        INSTALLATION_COMPLETE=true
     fi
     
     echo "$INSTALLATION_COMPLETE"

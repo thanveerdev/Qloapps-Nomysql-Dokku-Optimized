@@ -24,6 +24,42 @@ SETTINGS_FILE="/var/www/html/config/settings.inc.php"
 CONFIG_FILE="/var/www/html/config/config.inc.php"
 INSTALLATION_COMPLETE=false
 
+# Function to check if database has QloApps tables (actual installation completion)
+check_database_tables() {
+    local DB_HOST DB_NAME DB_USER DB_PASSWORD DB_PREFIX
+    
+    # Try to get database credentials from settings.inc.php
+    if [ -f "$SETTINGS_FILE" ]; then
+        DB_HOST=$(grep "_DB_SERVER_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_NAME=$(grep "_DB_NAME_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_USER=$(grep "_DB_USER_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_PASSWORD=$(grep "_DB_PASSWD_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        DB_PREFIX=$(grep "_DB_PREFIX_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
+        
+        # If we have credentials, check if shop table exists (indicates installation completed)
+        if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ]; then
+            # Use mysql command if available, otherwise use PHP
+            if command -v mysql >/dev/null 2>&1; then
+                # Try to connect and check for qlo_shop table
+                mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "SHOW TABLES LIKE '${DB_PREFIX}shop'" 2>/dev/null | grep -q "${DB_PREFIX}shop" && return 0
+            else
+                # Fallback: use PHP to check
+                php -r "
+                require '$SETTINGS_FILE';
+                try {
+                    \$pdo = new PDO('mysql:host='._DB_SERVER_.';dbname='._DB_NAME_, _DB_USER_, _DB_PASSWD_);
+                    \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'shop\'');
+                    exit(\$stmt->rowCount() > 0 ? 0 : 1);
+                } catch (Exception \$e) {
+                    exit(1);
+                }
+                " 2>/dev/null && return 0
+            fi
+        fi
+    fi
+    return 1
+}
+
 # Parse DATABASE_URL from environment and create settings.inc.php template if needed
 # This allows the installer to auto-detect database credentials from Dokku
 if [ -n "$DATABASE_URL" ] && [ ! -f "$SETTINGS_FILE" ]; then
@@ -88,28 +124,18 @@ EOF
     fi
 fi
 
-# Check settings.inc.php first (where QloApps stores DB config)
-if [ -f "$SETTINGS_FILE" ]; then
-    # Check if settings file has database connection (installation completed)
-    if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$SETTINGS_FILE" 2>/dev/null; then
+# Check if installation is actually complete by verifying database tables exist
+# This is more reliable than just checking if settings.inc.php exists
+# (since we create settings.inc.php from DATABASE_URL before installation)
+if check_database_tables; then
+    INSTALLATION_COMPLETE=true
+    echo "Installation verified complete: Database tables found"
+else
+    # Fallback: check if settings.inc.php exists AND install folder is missing
+    # (indicates installation was completed previously)
+    if [ -f "$SETTINGS_FILE" ] && [ ! -d "$INSTALL_DIR" ]; then
         INSTALLATION_COMPLETE=true
-    fi
-fi
-
-# Fallback: check config.inc.php (for other PrestaShop-based apps or if settings.inc.php doesn't exist)
-if [ "$INSTALLATION_COMPLETE" = false ] && [ -f "$CONFIG_FILE" ]; then
-    # Check if config file has database connection (installation completed)
-    if grep -q "_DB_SERVER_\|define.*DB_SERVER" "$CONFIG_FILE" 2>/dev/null; then
-        INSTALLATION_COMPLETE=true
-    fi
-fi
-
-# Additional check: if install folder doesn't have index.php or installer files, installation likely completed
-# This is a fallback for cases where config files might not have the expected format
-if [ "$INSTALLATION_COMPLETE" = false ] && [ -d "$INSTALL_DIR" ]; then
-    # If install folder exists but has no installer files, assume installation completed
-    if [ ! -f "$INSTALL_DIR/index.php" ] || [ ! -d "$INSTALL_DIR/controllers" ]; then
-        INSTALLATION_COMPLETE=true
+        echo "Installation appears complete: settings.inc.php exists and install folder removed"
     fi
 fi
 
