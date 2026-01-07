@@ -14,6 +14,7 @@ Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH,
 - ✅ **All required files**: Includes all 22 files needed for installer
 - ✅ **Dokku optimized**: Designed specifically for Dokku deployment
 - ✅ **Auto-security**: Install folder automatically deleted after installation completes
+- ✅ **Smart installer detection**: Automatically handles settings file to prevent errors before installation
 
 ## 📋 Requirements
 
@@ -144,9 +145,11 @@ Breaking it down:
 **How Automatic Detection Works:**
 
 1. On container startup, `startup-security.sh` parses `DATABASE_URL` and creates a template `config/settings.inc.php` if it doesn't exist
-2. The installer reads `settings.inc.php` and pre-fills the database form with those values
-3. If `settings.inc.php` has default values (localhost, qloapps, root), the installer checks `DATABASE_URL` as a fallback
-4. **You can edit any field** in the database configuration form before proceeding - the pre-filled values are just suggestions
+2. The script then checks if database tables exist to verify installation status
+3. **Smart behavior**: If database tables don't exist (fresh installation), the script automatically deletes `settings.inc.php` to allow the installer to run properly. This prevents HTTP 500 errors when the app tries to connect to a non-existent database.
+4. When you access the installer, it will detect the `DATABASE_URL` environment variable and pre-fill the database form with those values
+5. **You can edit any field** in the database configuration form before proceeding - the pre-filled values are just suggestions
+6. Once installation completes and tables are created, `settings.inc.php` will be properly created by the installer
 
 **Note:** If you want to use completely different database settings, simply edit the form fields. The installer will use whatever values you enter, not the pre-filled ones.
 
@@ -267,6 +270,33 @@ dokku config:show qloapps
 ```
 
 ## 🔍 Troubleshooting
+
+### HTTP 500 Errors on First Access
+
+If you see HTTP 500 errors when first accessing the app after deployment:
+
+**Cause:** The app may be trying to use `settings.inc.php` before the database tables are created.
+
+**Solution:** This is automatically handled by the startup script. The script:
+- Creates `settings.inc.php` from `DATABASE_URL` for installer convenience
+- Checks if database tables exist
+- If tables don't exist, automatically deletes `settings.inc.php` to allow installer to run
+- The app will redirect to `/install/` where you can complete the installation
+
+**Manual Fix (if needed):**
+```bash
+# Enter the container
+dokku enter qloapps web
+
+# Remove settings.inc.php if it exists but installation isn't complete
+rm -f /var/www/html/config/settings.inc.php
+
+# Restart the app
+exit
+dokku ps:restart qloapps
+```
+
+After removing `settings.inc.php`, the app will redirect to the installer automatically.
 
 ### Database Connection Issues
 
@@ -490,4 +520,5 @@ For issues related to:
 
 **Last Updated**: January 2026  
 **QloApps Version**: 1.7.0.0  
-**Docker Image**: Available on Docker Hub
+**Docker Image**: Available on Docker Hub  
+**Latest Fix**: Fixed HTTP 500 errors on first deployment by automatically managing settings.inc.php based on installation status
