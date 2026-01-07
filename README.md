@@ -48,18 +48,17 @@ This automatically sets the `DATABASE_URL` environment variable.
 dokku domains:set qloapps yourdomain.com
 ```
 
-### 4. Set Environment Variables
+### 4. Set Environment Variables (Optional)
 
 ```bash
 dokku config:set qloapps \
   APP_ENV=prod \
   PS_DEV_MODE=0 \
   PS_HOST_MODE=0 \
-  PS_INSTALL_AUTO=0 \
-  KEEP_INSTALL_FOLDER=true
+  PS_INSTALL_AUTO=0
 ```
 
-**Note:** Set `KEEP_INSTALL_FOLDER=true` to keep the install folder available during installation. It will be automatically removed after installation is complete.
+**Note:** The install folder is kept by default during installation. It will be automatically removed after installation is complete. To explicitly remove it before installation completes, set `KEEP_INSTALL_FOLDER=false`.
 
 ### 5. Deploy the Application
 
@@ -302,11 +301,12 @@ chmod -R 775 /var/www/html/cache /var/www/html/upload /var/www/html/config
 
 The Dockerfile automatically creates all required files. If you see "Not all files were successfully uploaded":
 
-1. Ensure `KEEP_INSTALL_FOLDER=true` is set: `dokku config:set qloapps KEEP_INSTALL_FOLDER=true`
-2. Restart the app: `dokku ps:restart qloapps`
-3. Clear browser cache (Ctrl+Shift+R)
-4. Restart installer: `https://yourdomain.com/install/index.php?step=welcome`
-5. Verify files exist:
+1. Verify the install folder exists (it should by default): `dokku enter qloapps web ls -la /var/www/html/install/`
+2. If missing, ensure `KEEP_INSTALL_FOLDER` is not set to `false`: `dokku config:unset qloapps KEEP_INSTALL_FOLDER`
+3. Restart the app: `dokku ps:restart qloapps`
+4. Clear browser cache (Ctrl+Shift+R)
+5. Restart installer: `https://yourdomain.com/install/index.php?step=welcome`
+6. Verify files exist:
    ```bash
    dokku enter qloapps web
    ls -la /var/www/html/cache/smarty/compile/index.php
@@ -316,22 +316,34 @@ The Dockerfile automatically creates all required files. If you see "Not all fil
 
 ### Install Folder Missing
 
-If you see "install directory is missing" error:
+If you see "install directory is missing" error (should not happen with default settings):
 
-1. **Set the environment variable:**
+1. **Verify the install folder exists:**
    ```bash
+   dokku enter qloapps web ls -la /var/www/html/install/
+   ```
+
+2. **If missing, check if KEEP_INSTALL_FOLDER was set to false:**
+   ```bash
+   dokku config:show qloapps | grep KEEP_INSTALL_FOLDER
+   ```
+
+3. **If it's set to false, remove it or set to true:**
+   ```bash
+   dokku config:unset qloapps KEEP_INSTALL_FOLDER
+   # OR
    dokku config:set qloapps KEEP_INSTALL_FOLDER=true
    ```
 
-2. **Restart the app:**
+4. **Restart the app:**
    ```bash
    dokku ps:restart qloapps
    ```
 
-3. **Access the installer:**
+5. **Access the installer:**
    Visit `https://yourdomain.com/install/`
 
-**Note:** The install folder will be automatically removed after installation is complete. You don't need to manually remove it.
+**Note:** The install folder is kept by default and will be automatically removed after installation is complete. You don't need to manually remove it.
 
 ### Performance Issues
 
@@ -428,13 +440,14 @@ The install folder is automatically deleted after installation is complete for s
 - The daemon exits automatically after successful deletion
 
 **During Installation:**
-- To keep the install folder available during installation, set: `dokku config:set APP_NAME KEEP_INSTALL_FOLDER=true`
+- The install folder is kept by default during installation (no configuration needed)
 - The install folder will remain accessible until installation is complete
-- The cleanup daemon will automatically start monitoring when `KEEP_INSTALL_FOLDER=true` is set
+- The cleanup daemon automatically starts monitoring installation completion
+- To explicitly remove the install folder before installation completes, set: `dokku config:set APP_NAME KEEP_INSTALL_FOLDER=false`
 
 **After Installation:**
 - Once installation is detected as complete, the install folder is automatically removed within 30 seconds (no restart needed)
-- This happens automatically even if `KEEP_INSTALL_FOLDER=true` was set
+- This happens automatically regardless of `KEEP_INSTALL_FOLDER` setting (security takes priority)
 - No manual intervention needed - the system handles it automatically
 - You can monitor the cleanup process via logs: `dokku enter APP_NAME web cat /var/log/install-cleanup.log`
 

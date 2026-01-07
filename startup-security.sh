@@ -166,25 +166,26 @@ fi
 
 # Delete install folder logic:
 # 1. Always delete if installation is complete (regardless of KEEP_INSTALL_FOLDER)
-# 2. Delete if KEEP_INSTALL_FOLDER is not set to true
-# 3. Keep only if KEEP_INSTALL_FOLDER=true AND installation is not complete
+# 2. Keep install folder by default if installation is not complete (safer for new installations)
+# 3. Delete only if KEEP_INSTALL_FOLDER is explicitly set to false AND installation is not complete
 if [ -d "$INSTALL_DIR" ]; then
     if [ "$INSTALLATION_COMPLETE" = true ]; then
         echo "Installation detected as complete. Removing install folder for security..."
         rm -rf "$INSTALL_DIR"
         echo "Install folder removed successfully"
-    elif [ "${KEEP_INSTALL_FOLDER:-false}" != "true" ]; then
-        echo "Removing install folder for security..."
+    elif [ "${KEEP_INSTALL_FOLDER:-true}" = "false" ]; then
+        echo "Removing install folder for security (KEEP_INSTALL_FOLDER=false)..."
         rm -rf "$INSTALL_DIR"
         echo "Install folder removed successfully"
     else
-        echo "Keeping install folder (KEEP_INSTALL_FOLDER=true is set and installation not complete)"
+        echo "Keeping install folder (installation not complete - set KEEP_INSTALL_FOLDER=false to remove)"
     fi
 fi
 
 # Start background cleanup daemon to automatically delete install folder after installation
 # This runs in the background and checks periodically if installation is complete
-if [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER:-false}" = "true" ]; then
+# Only start if install folder exists and KEEP_INSTALL_FOLDER is not explicitly false
+if [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER:-true}" != "false" ]; then
     echo "Starting install cleanup daemon to monitor installation completion..."
     /usr/local/bin/cleanup-install-daemon.sh &
     CLEANUP_PID=$!
