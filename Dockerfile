@@ -145,7 +145,11 @@ RUN chmod +x /usr/local/bin/generate-env.sh
 # Backup essential files to a location that won't be mounted
 # This allows us to restore them when persistent storage is empty
 # CRITICAL: config/ directory must be backed up as it contains config.inc.php
-RUN mkdir -p /usr/local/qloapps-backup/{config,img,upload,cache,log} \
+RUN mkdir -p /usr/local/qloapps-backup/config \
+    && mkdir -p /usr/local/qloapps-backup/img \
+    && mkdir -p /usr/local/qloapps-backup/upload \
+    && mkdir -p /usr/local/qloapps-backup/cache \
+    && mkdir -p /usr/local/qloapps-backup/log \
     && if [ -d /var/www/html/config ] && [ -n "$(ls -A /var/www/html/config 2>/dev/null)" ]; then \
         cp -a /var/www/html/config/* /usr/local/qloapps-backup/config/; \
     fi \
