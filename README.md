@@ -15,6 +15,7 @@ Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH,
 - ✅ **Dokku optimized**: Designed specifically for Dokku deployment
 - ✅ **Auto-security**: Install folder automatically deleted after installation completes
 - ✅ **Smart installer detection**: Automatically handles settings file to prevent errors before installation
+- ✅ **Automated deployment**: Includes `deploy.sh` script for one-command setup (MySQL + persistent storage)
 
 ## 📋 Requirements
 
@@ -25,13 +26,41 @@ Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH,
 
 ## 🛠️ Installation on Dokku
 
-### 1. Create the Dokku App
+### Quick Start (Automated)
+
+For the fastest setup, use the automated deployment script:
+
+```bash
+# Clone the repository
+git clone https://github.com/thanveerdev/Qloapps-Nomysql-Dokku-Optimized.git
+cd Qloapps-Nomysql-Dokku-Optimized
+
+# Run the automated deployment script
+./deploy.sh qloapps-pro9 qlo3.aixgrapher.com
+
+# Deploy the application
+git remote add dokku dokku@your-server:qloapps-pro9
+git push dokku main
+```
+
+The `deploy.sh` script automatically:
+- ✅ Creates the Dokku app
+- ✅ Creates and links MySQL service
+- ✅ Sets up persistent storage for img, upload, cache, and log directories
+- ✅ Configures the domain
+- ✅ Displays all connection information
+
+### Manual Installation
+
+If you prefer manual setup or need more control:
+
+#### 1. Create the Dokku App
 
 ```bash
 dokku apps:create qloapps
 ```
 
-### 2. Create MySQL Service
+#### 2. Create MySQL Service
 
 ```bash
 # Create MySQL service
@@ -43,13 +72,28 @@ dokku mysql:link qloapps-db qloapps
 
 This automatically sets the `DATABASE_URL` environment variable.
 
-### 3. Configure Domain
+#### 3. Set Up Persistent Storage (Recommended)
+
+```bash
+# Create storage directories
+mkdir -p /var/lib/dokku/data/storage/qloapps/{img,upload,cache,log}
+
+# Mount persistent storage
+dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/img:/var/www/html/img
+dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/upload:/var/www/html/upload
+dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/cache:/var/www/html/cache
+dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/log:/var/www/html/log
+```
+
+This ensures uploaded files, images, cache, and logs persist across deployments.
+
+#### 4. Configure Domain
 
 ```bash
 dokku domains:set qloapps yourdomain.com
 ```
 
-### 4. Set Environment Variables (Optional)
+#### 4. Set Environment Variables (Optional)
 
 ```bash
 dokku config:set qloapps \
@@ -61,7 +105,7 @@ dokku config:set qloapps \
 
 **Note:** The install folder is kept by default during installation. It will be automatically removed after installation is complete. To explicitly remove it before installation completes, set `KEEP_INSTALL_FOLDER=false`.
 
-### 5. Deploy the Application
+#### 5. Deploy the Application
 
 #### Option A: Deploy from Git Repository
 
@@ -80,7 +124,7 @@ git push dokku master
 dokku git:from-image qloapps your-dockerhub-username/qloapps-nomysql-dokku-optimized:latest
 ```
 
-### 6. Enable SSL (Let's Encrypt)
+#### 6. Enable SSL (Let's Encrypt)
 
 ```bash
 # Set email for Let's Encrypt
@@ -90,7 +134,7 @@ dokku letsencrypt:set qloapps email your-email@example.com
 dokku letsencrypt:enable qloapps
 ```
 
-### 7. Complete QloApps Installation
+#### 7. Complete QloApps Installation
 
 1. Visit `https://yourdomain.com/install/`
 2. Follow the installation wizard through the steps:
