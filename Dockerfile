@@ -136,6 +136,10 @@ RUN chmod +x /usr/local/bin/startup-security.sh
 COPY cleanup-install-daemon.sh /usr/local/bin/cleanup-install-daemon.sh
 RUN chmod +x /usr/local/bin/cleanup-install-daemon.sh
 
+# Copy generate-env script
+COPY generate-env.sh /usr/local/bin/generate-env.sh
+RUN chmod +x /usr/local/bin/generate-env.sh
+
 # Expose port 80
 EXPOSE 80
 
