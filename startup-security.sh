@@ -24,7 +24,11 @@ SETTINGS_FILE="/var/www/html/config/settings.inc.php"
 CONFIG_FILE="/var/www/html/config/config.inc.php"
 INSTALLATION_COMPLETE=false
 
-# Function to check if database has QloApps tables (actual installation completion)
+# Function to check if installation is truly complete (not just started)
+# Installation is complete when:
+# 1. Database tables exist (qlo_shop, qlo_configuration)
+# 2. Configuration values are set (PS_INSTALL_VERSION)
+# 3. Modules are installed (qlo_module table has entries)
 check_database_tables() {
     local DB_HOST DB_NAME DB_USER DB_PASSWORD DB_PREFIX
     
@@ -36,25 +40,48 @@ check_database_tables() {
         DB_PASSWORD=$(grep "_DB_PASSWD_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
         DB_PREFIX=$(grep "_DB_PREFIX_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
         
-        # If we have credentials, check if shop table exists (indicates installation completed)
+        # If we have credentials, check multiple indicators of FULL installation completion
         if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ]; then
-            # Use mysql command if available, otherwise use PHP
-            if command -v mysql >/dev/null 2>&1; then
-                # Try to connect and check for qlo_shop table
-                mysql -h"$DB_HOST" -u"$DB_USER" -p"$DB_PASSWORD" "$DB_NAME" -e "SHOW TABLES LIKE '${DB_PREFIX}shop'" 2>/dev/null | grep -q "${DB_PREFIX}shop" && return 0
-            else
-                # Fallback: use PHP to check
-                php -r "
-                require '$SETTINGS_FILE';
-                try {
-                    \$pdo = new PDO('mysql:host='._DB_SERVER_.';dbname='._DB_NAME_, _DB_USER_, _DB_PASSWD_);
-                    \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'shop\'');
-                    exit(\$stmt->rowCount() > 0 ? 0 : 1);
-                } catch (Exception \$e) {
-                    exit(1);
+            # Use PHP to check multiple conditions (more reliable in container)
+            php -r "
+            require '$SETTINGS_FILE';
+            try {
+                \$pdo = new PDO('mysql:host='._DB_SERVER_.';dbname='._DB_NAME_, _DB_USER_, _DB_PASSWD_);
+                
+                // Check 1: Shop table exists (early indicator)
+                \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'shop\'');
+                \$has_shop = \$stmt->rowCount() > 0;
+                
+                // Check 2: Configuration table exists and has PS_INSTALL_VERSION (mid indicator)
+                \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'configuration\'');
+                \$has_config = \$stmt->rowCount() > 0;
+                \$has_install_version = false;
+                if (\$has_config) {
+                    \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM '._DB_PREFIX_.'configuration WHERE name = \"PS_INSTALL_VERSION\" AND value IS NOT NULL AND value != \"\"');
+                    \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
+                    \$has_install_version = (\$row && \$row['cnt'] > 0);
                 }
-                " 2>/dev/null && return 0
-            fi
+                
+                // Check 3: Module table exists and has entries (late indicator - modules installed)
+                \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'module\'');
+                \$has_module_table = \$stmt->rowCount() > 0;
+                \$has_modules = false;
+                if (\$has_module_table) {
+                    \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM '._DB_PREFIX_.'module');
+                    \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
+                    \$has_modules = (\$row && \$row['cnt'] > 0);
+                }
+                
+                // Installation is complete only if ALL indicators are true
+                // This ensures we don't delete install folder during installation
+                if (\$has_shop && \$has_config && \$has_install_version && \$has_module_table && \$has_modules) {
+                    exit(0); // Installation complete
+                }
+                exit(1); // Installation not complete
+            } catch (Exception \$e) {
+                exit(1);
+            }
+            " 2>/dev/null && return 0
         fi
     fi
     return 1
