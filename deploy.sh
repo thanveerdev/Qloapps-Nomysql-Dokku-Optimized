@@ -112,6 +112,16 @@ else
     echo "   ✓ config directory mounted"
 fi
 
+# IMPORTANT: Individual directory mounts are safe because:
+# - They only persist data directories (config, img, upload, cache, log)
+# - Application files (index.php, classes/, controllers/, etc.) remain in the image
+# - This prevents HTTP 500 errors from empty mounts
+# 
+# If you need to mount entire /var/www/html, you MUST copy files first:
+# 1. Deploy app without mount
+# 2. Copy files: docker cp $(dokku enter $APP_NAME web echo $HOSTNAME | xargs docker ps -q -f name=):/var/www/html $STORAGE_BASE/html
+# 3. Then mount: dokku storage:mount $APP_NAME $STORAGE_BASE/html:/var/www/html
+
 # Step 6: Configure domain if provided
 if [ -n "$DOMAIN" ]; then
     echo ""

@@ -93,6 +93,82 @@ else
 fi
 echo ""
 
+# Handle empty persistent storage on first mount
+# When persistent storage is mounted for the first time, directories are empty
+# We need to initialize them with files from the image
+echo "Checking for empty persistent storage directories..."
+
+# Function to initialize empty persistent storage directory
+# This copies files from image to persistent storage if directory is empty
+initialize_persistent_dir() {
+    local target_dir="$1"
+    local source_dir="/var/www/html.original/$2"
+    
+    # Only initialize if directory is mounted and empty
+    if mountpoint -q "$target_dir" 2>/dev/null; then
+        # Check if directory is empty (only . and ..)
+        if [ -d "$target_dir" ] && [ -z "$(ls -A "$target_dir" 2>/dev/null)" ]; then
+            echo "Initializing empty persistent storage: $target_dir"
+            # Copy from original location if it exists
+            if [ -d "$source_dir" ]; then
+                cp -a "$source_dir"/* "$target_dir"/ 2>/dev/null || true
+                echo "   ✓ Copied files to $target_dir"
+            fi
+        fi
+    fi
+}
+
+# Store original files location before any mounts (if not already stored)
+# This is a fallback - in practice, files should be in the image
+ORIGINAL_HTML="/var/www/html.original"
+if [ ! -d "$ORIGINAL_HTML" ]; then
+    # Try to access files from image (they might be in overlay filesystem)
+    # For now, we'll handle this by checking if directories are empty
+    # and creating required structure
+    :
+fi
+
+# Initialize persistent storage directories if empty
+# Note: This handles the case where persistent storage is mounted but empty
+initialize_persistent_dir "/var/www/html/config" "config"
+initialize_persistent_dir "/var/www/html/img" "img"
+initialize_persistent_dir "/var/www/html/upload" "upload"
+initialize_persistent_dir "/var/www/html/cache" "cache"
+initialize_persistent_dir "/var/www/html/log" "log"
+
+# Check if entire /var/www/html is mounted and empty (critical case)
+# This is the most common cause of HTTP 500 errors
+if mountpoint -q "/var/www/html" 2>/dev/null; then
+    if [ ! -f "/var/www/html/index.php" ]; then
+        echo ""
+        echo "❌ CRITICAL ERROR: /var/www/html is mounted but EMPTY!"
+        echo "   This will cause HTTP 500 errors because all application files are missing."
+        echo ""
+        echo "   SOLUTION:"
+        echo "   1. Unmount the empty storage:"
+        echo "      dokku storage:unmount APP_NAME /var/www/html"
+        echo ""
+        echo "   2. Copy files from a running container to storage:"
+        echo "      # Start container without mount first"
+        echo "      # Copy files: docker cp CONTAINER_ID:/var/www/html /var/lib/dokku/data/storage/APP_NAME/"
+        echo ""
+        echo "   3. Remount:"
+        echo "      dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/html:/var/www/html"
+        echo ""
+        echo "   OR use individual directory mounts (recommended):"
+        echo "      dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/config:/var/www/html/config"
+        echo "      dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/img:/var/www/html/img"
+        echo "      dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/upload:/var/www/html/upload"
+        echo "      dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/cache:/var/www/html/cache"
+        echo "      dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/log:/var/www/html/log"
+        echo ""
+        echo "   Individual mounts are safer - they only persist data, not application files."
+        echo ""
+        echo "   ⚠️  Container will continue but application will not work until fixed."
+        echo ""
+    fi
+fi
+
 # Ensure required directories exist and have correct permissions
 # This is especially important when persistent storage is mounted
 # as it may have different ownership/permissions
