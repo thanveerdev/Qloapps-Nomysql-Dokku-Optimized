@@ -24,6 +24,70 @@ SETTINGS_FILE="/var/www/html/config/settings.inc.php"
 CONFIG_FILE="/var/www/html/config/config.inc.php"
 INSTALLATION_COMPLETE=false
 
+# Function to create settings.inc.php from DATABASE_URL (recovery mechanism)
+create_settings_from_database_url() {
+    if [ -z "$DATABASE_URL" ]; then
+        return 1
+    fi
+    
+    echo "Recovery: Creating settings.inc.php from DATABASE_URL..."
+    
+    # Parse DATABASE_URL format: mysql://user:password@host:port/database
+    DB_URL="${DATABASE_URL#mysql://}"
+    
+    # Extract user:password@host:port/database
+    if [[ "$DB_URL" =~ ^([^:]+):([^@]+)@([^/]+)/(.+)$ ]]; then
+        DB_USER="${BASH_REMATCH[1]}"
+        DB_PASSWORD="${BASH_REMATCH[2]}"
+        DB_HOST_PORT="${BASH_REMATCH[3]}"
+        DB_NAME="${BASH_REMATCH[4]}"
+        
+        # Extract host and port
+        if [[ "$DB_HOST_PORT" =~ ^([^:]+):(.+)$ ]]; then
+            DB_HOST="${BASH_REMATCH[1]}"
+            DB_PORT="${BASH_REMATCH[2]}"
+        else
+            DB_HOST="$DB_HOST_PORT"
+            DB_PORT="3306"
+        fi
+        
+        # Generate cookie keys (simple random strings - installer will regenerate proper ones)
+        COOKIE_KEY=$(openssl rand -hex 28 2>/dev/null || head -c 56 /dev/urandom | base64 | tr -d '\n' | head -c 56)
+        COOKIE_IV=$(openssl rand -hex 4 2>/dev/null || head -c 8 /dev/urandom | base64 | tr -d '\n' | head -c 8)
+        NEW_COOKIE_KEY=$(openssl rand -hex 32 2>/dev/null || head -c 64 /dev/urandom | base64 | tr -d '\n' | head -c 64)
+        
+        # Create settings.inc.php
+        cat > "$SETTINGS_FILE" << EOF
+<?php
+define('_DB_SERVER_', '${DB_HOST}');
+define('_DB_NAME_', '${DB_NAME}');
+define('_DB_USER_', '${DB_USER}');
+define('_DB_PASSWD_', '${DB_PASSWORD}');
+define('_DB_PREFIX_', 'qlo_');
+define('_MYSQL_ENGINE_', 'InnoDB');
+define('_PS_CACHING_SYSTEM_', 'CacheMemcache');
+define('_PS_CACHE_ENABLED_', '0');
+define('_COOKIE_KEY_', '${COOKIE_KEY}');
+define('_COOKIE_IV_', '${COOKIE_IV}');
+define('_NEW_COOKIE_KEY_', 'def00000${NEW_COOKIE_KEY}');
+define('_PS_CREATION_DATE_', '$(date +%Y-%m-%d)');
+if (!defined('_PS_VERSION_'))
+	define('_PS_VERSION_', '1.6.1.23');
+define('_QLOAPPS_VERSION_', '1.7.0.0');
+EOF
+        
+        # Set proper permissions
+        chown www-data:www-data "$SETTINGS_FILE"
+        chmod 644 "$SETTINGS_FILE"
+        
+        echo "Settings file recreated from DATABASE_URL"
+        return 0
+    else
+        echo "Warning: Could not parse DATABASE_URL format. Expected: mysql://user:password@host:port/database"
+        return 1
+    fi
+}
+
 # Function to check if installation is truly complete (not just started)
 # Installation is complete when:
 # 1. Database tables exist (qlo_shop, qlo_configuration)
@@ -31,7 +95,6 @@ INSTALLATION_COMPLETE=false
 # 3. Modules are installed (qlo_module table has entries)
 check_database_tables() {
     local DB_HOST DB_NAME DB_USER DB_PASSWORD DB_PREFIX
-    local ENV_FILE="/var/www/html/.env"
     
     # Try to get database credentials from settings.inc.php first
     if [ -f "$SETTINGS_FILE" ]; then
@@ -42,16 +105,7 @@ check_database_tables() {
         DB_PREFIX=$(grep "_DB_PREFIX_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
     fi
     
-    # If no credentials from settings.inc.php, try to read from .env file
-    if [ -z "$DB_HOST" ] && [ -f "$ENV_FILE" ]; then
-        DB_HOST=$(grep "^DB_SERVER=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ')
-        DB_NAME=$(grep "^DB_NAME=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ')
-        DB_USER=$(grep "^DB_USER=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ')
-        DB_PASSWORD=$(grep "^DB_PASSWD=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ')
-        DB_PREFIX=$(grep "^DB_PREFIX=" "$ENV_FILE" | cut -d'=' -f2 | tr -d ' ')
-    fi
-    
-    # If no credentials from .env, try to parse from DATABASE_URL
+    # Fallback: Try to get credentials from DATABASE_URL if settings.inc.php is missing
     if [ -z "$DB_HOST" ] && [ -n "$DATABASE_URL" ]; then
         DB_URL="${DATABASE_URL#mysql://}"
         if [[ "$DB_URL" =~ ^([^:]+):([^@]+)@([^/]+)/(.+)$ ]]; then
@@ -65,6 +119,7 @@ check_database_tables() {
             else
                 DB_HOST="$DB_HOST_PORT"
             fi
+            # Default prefix if not found
             DB_PREFIX="${DB_PREFIX:-qlo_}"
         fi
     fi
@@ -114,58 +169,59 @@ check_database_tables() {
     return 1
 }
 
-# Create .env file from DATABASE_URL or generate default if not present
-ENV_FILE="/var/www/html/.env"
-if [ ! -f "$ENV_FILE" ]; then
-    echo "No .env file found. Generating default .env file..."
-    /usr/local/bin/generate-env.sh
-else
-    echo ".env file already exists, skipping generation"
-fi
-
 # Check if installation is actually complete by verifying database tables exist
-# This is more reliable than just checking if settings.inc.php exists
-# (since we create settings.inc.php from DATABASE_URL before installation)
+# Note: Installer reads DATABASE_URL directly from environment variables for pre-filling
+# No template file is needed - the installer handles this automatically
 if check_database_tables; then
     INSTALLATION_COMPLETE=true
     echo "Installation verified complete: Database tables found"
+    
+    # Recovery: If settings.inc.php is missing but installation is complete,
+    # recreate it from DATABASE_URL to prevent "install directory is missing" errors
+    if [ ! -f "$SETTINGS_FILE" ] && [ -n "$DATABASE_URL" ]; then
+        echo "Recovery: settings.inc.php is missing but installation is complete."
+        echo "Recreating settings.inc.php from DATABASE_URL to restore functionality..."
+        create_settings_from_database_url
+    fi
 else
-    # Don't use fallback check - settings.inc.php can exist from DATABASE_URL
-    # before installation starts, so we must verify database tables exist
     INSTALLATION_COMPLETE=false
     echo "Installation not complete: Database tables not found or not accessible"
-    
-    # Ensure settings.inc.php doesn't exist before installation
-    # The installer will create it during installation, and .env file provides the credentials
-    if [ -f "$SETTINGS_FILE" ]; then
-        echo "Removing settings.inc.php to allow installer to run (database not yet installed)..."
-        rm -f "$SETTINGS_FILE"
-        echo "Settings file removed - installer will create it during installation using .env file"
-    fi
 fi
 
 # Delete install folder logic:
-# 1. Always delete if installation is complete (regardless of KEEP_INSTALL_FOLDER)
-# 2. Keep install folder by default if installation is not complete (safer for new installations)
-# 3. Delete only if KEEP_INSTALL_FOLDER is explicitly set to false AND installation is not complete
+# CRITICAL: Only delete install folder if settings.inc.php exists AND installation is complete
+# This prevents the "install directory is missing" error when settings.inc.php is missing on restart
+# 1. Always delete if installation is complete AND settings.inc.php exists (regardless of KEEP_INSTALL_FOLDER)
+# 2. Delete if KEEP_INSTALL_FOLDER is not set to true AND settings.inc.php exists
+# 3. Keep install folder if settings.inc.php is missing (needed for installer to run)
+# 4. Keep if KEEP_INSTALL_FOLDER=true AND installation is not complete
 if [ -d "$INSTALL_DIR" ]; then
-    if [ "$INSTALLATION_COMPLETE" = true ]; then
+    # Safety check: Don't delete install folder if settings.inc.php is missing
+    # This prevents the error where app tries to redirect to /install/ but folder is gone
+    if [ ! -f "$SETTINGS_FILE" ]; then
+        echo "Warning: settings.inc.php is missing. Keeping install folder to allow installation/recovery."
+        echo "If installation was already complete, settings.inc.php should be recreated from DATABASE_URL on next restart."
+    elif [ "$INSTALLATION_COMPLETE" = true ]; then
         echo "Installation detected as complete. Removing install folder for security..."
         rm -rf "$INSTALL_DIR"
         echo "Install folder removed successfully"
-    elif [ "${KEEP_INSTALL_FOLDER:-true}" = "false" ]; then
-        echo "Removing install folder for security (KEEP_INSTALL_FOLDER=false)..."
-        rm -rf "$INSTALL_DIR"
-        echo "Install folder removed successfully"
+    elif [ "${KEEP_INSTALL_FOLDER:-false}" != "true" ]; then
+        # Only delete if settings.inc.php exists (safety check)
+        if [ -f "$SETTINGS_FILE" ]; then
+            echo "Removing install folder for security (KEEP_INSTALL_FOLDER not set to true)..."
+            rm -rf "$INSTALL_DIR"
+            echo "Install folder removed successfully"
+        else
+            echo "Keeping install folder (settings.inc.php missing, needed for installer)"
+        fi
     else
-        echo "Keeping install folder (installation not complete - set KEEP_INSTALL_FOLDER=false to remove)"
+        echo "Keeping install folder (KEEP_INSTALL_FOLDER=true is set and installation not complete)"
     fi
 fi
 
 # Start background cleanup daemon to automatically delete install folder after installation
 # This runs in the background and checks periodically if installation is complete
-# Only start if install folder exists and KEEP_INSTALL_FOLDER is not explicitly false
-if [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER:-true}" != "false" ]; then
+if [ -d "$INSTALL_DIR" ] && [ "${KEEP_INSTALL_FOLDER:-false}" = "true" ]; then
     echo "Starting install cleanup daemon to monitor installation completion..."
     /usr/local/bin/cleanup-install-daemon.sh &
     CLEANUP_PID=$!
@@ -174,4 +230,3 @@ fi
 
 # Start Apache (original command)
 exec apache2-foreground
-

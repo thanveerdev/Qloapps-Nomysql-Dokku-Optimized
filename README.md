@@ -188,12 +188,14 @@ Breaking it down:
 
 **How Automatic Detection Works:**
 
-1. On container startup, `startup-security.sh` parses `DATABASE_URL` and creates a template `config/settings.inc.php` if it doesn't exist
-2. The script then checks if database tables exist to verify installation status
-3. **Smart behavior**: If database tables don't exist (fresh installation), the script automatically deletes `settings.inc.php` to allow the installer to run properly. This prevents HTTP 500 errors when the app tries to connect to a non-existent database.
-4. When you access the installer, it will detect the `DATABASE_URL` environment variable and pre-fill the database form with those values
-5. **You can edit any field** in the database configuration form before proceeding - the pre-filled values are just suggestions
-6. Once installation completes and tables are created, `settings.inc.php` will be properly created by the installer
+1. The installer reads `DATABASE_URL` directly from environment variables (set by Dokku when you link MySQL)
+2. The installer automatically parses `DATABASE_URL` and pre-fills the database form with those values
+3. **You can edit any field** in the database configuration form before proceeding - the pre-filled values are just suggestions
+4. During installation, the installer creates `config/settings.inc.php` with proper security keys and configuration
+
+**Important - Persistent Storage:**
+
+For production deployments, it's recommended to use persistent storage for the `config/` directory to ensure `settings.inc.php` persists across container restarts. If persistent storage is not configured and `settings.inc.php` is missing on restart, the startup script will automatically recreate it from `DATABASE_URL` as a recovery mechanism (only if installation is already complete).
 
 **Note:** If you want to use completely different database settings, simply edit the form fields. The installer will use whatever values you enter, not the pre-filled ones.
 
@@ -388,36 +390,47 @@ The Dockerfile automatically creates all required files. If you see "Not all fil
    ls -la /var/www/html/install/
    ```
 
-### Install Folder Missing
+### Install Folder Missing / Settings File Missing
 
-If you see "install directory is missing" error (should not happen with default settings):
+If you see "install directory is missing" error after container restart:
 
-1. **Verify the install folder exists:**
+**Root Cause:** This typically happens when `config/settings.inc.php` is missing (often due to missing persistent storage) and the install folder was already deleted.
+
+**Automatic Recovery:**
+
+The startup script automatically handles this:
+1. If `settings.inc.php` is missing but installation is complete (verified via database), it recreates the file from `DATABASE_URL`
+2. If `settings.inc.php` is missing, the install folder is kept (not deleted) to allow recovery
+
+**Manual Fix:**
+
+1. **Check if settings.inc.php exists:**
    ```bash
-   dokku enter qloapps web ls -la /var/www/html/install/
+   dokku enter qloapps web ls -la /var/www/html/config/settings.inc.php
    ```
 
-2. **If missing, check if KEEP_INSTALL_FOLDER was set to false:**
-   ```bash
-   dokku config:show qloapps | grep KEEP_INSTALL_FOLDER
-   ```
-
-3. **If it's set to false, remove it or set to true:**
-   ```bash
-   dokku config:unset qloapps KEEP_INSTALL_FOLDER
-   # OR
-   dokku config:set qloapps KEEP_INSTALL_FOLDER=true
-   ```
-
-4. **Restart the app:**
+2. **If missing and installation is complete, restart the container:**
    ```bash
    dokku ps:restart qloapps
    ```
+   The startup script will automatically recreate `settings.inc.php` from `DATABASE_URL`.
 
-5. **Access the installer:**
+3. **If installation is not complete, ensure install folder exists:**
+   ```bash
+   dokku config:set qloapps KEEP_INSTALL_FOLDER=true
+   dokku ps:restart qloapps
+   ```
+
+4. **Access the installer:**
    Visit `https://yourdomain.com/install/`
 
-**Note:** The install folder is kept by default and will be automatically removed after installation is complete. You don't need to manually remove it.
+**Prevention (Recommended):**
+
+Use persistent storage for the `config/` directory to ensure `settings.inc.php` persists across restarts:
+- Configure Dokku persistent storage for `/var/www/html/config`
+- This prevents the need for recovery mechanisms
+
+**Note:** The install folder will be automatically removed after installation is complete. You don't need to manually remove it.
 
 ### Performance Issues
 
