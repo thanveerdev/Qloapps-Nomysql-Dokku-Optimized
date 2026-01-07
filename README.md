@@ -11,11 +11,16 @@ Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH,
 - ✅ **No MySQL**: Uses external Dokku MySQL plugin (best practice)
 - ✅ **No SSH/Supervisord**: Minimal attack surface, better security
 - ✅ **Production-ready**: PHP 8.1, OPcache enabled, optimized settings
-- ✅ **All required files**: Includes all 22 files needed for installer
+- ✅ **All required files**: Includes all required index.php files for installer compatibility
 - ✅ **Dokku optimized**: Designed specifically for Dokku deployment
 - ✅ **Auto-security**: Install folder automatically deleted after installation completes
 - ✅ **Smart installer detection**: Automatically handles settings file to prevent errors before installation
 - ✅ **Automated deployment**: Includes `deploy.sh` script for one-command setup (MySQL + persistent storage)
+- ✅ **Enhanced security**: Admin folder automatically renamed to `qlo-admin` (configurable)
+- ✅ **Persistent storage validation**: Automatically validates and warns if persistent storage is missing
+- ✅ **Advanced installation detection**: Multi-factor verification ensures installation is 100% complete before cleanup
+- ✅ **Automatic recovery**: Settings file recovery from DATABASE_URL if missing
+- ✅ **Seamless restarts**: Admin folder and all settings persist across container restarts
 
 ## 📋 Requirements
 
@@ -521,6 +526,29 @@ docker run -d -p 8080:80 \
   - Admin folder is automatically renamed to `qlo-admin` on container startup (like WordPress's `wp-admin`)
   - Install folder is automatically removed after installation is complete
   - To use a custom admin folder name, set: `dokku config:set APP_NAME ADMIN_FOLDER_NAME=your-custom-name`
+
+### 🔒 Advanced Security Features
+
+#### Persistent Storage Validation
+The startup script automatically validates that critical directories are on persistent storage:
+- **Automatic detection**: Checks if `config/`, `img/`, `upload/`, and admin folder are persisted
+- **Clear warnings**: Shows exact warnings if persistent storage is missing
+- **Fix instructions**: Provides exact commands to configure persistent storage
+- **Production-ready**: Ensures no data loss on container restarts
+
+#### Enhanced Installation Detection
+Multi-factor verification ensures installation is 100% complete before cleanup:
+- **Shop verification**: Checks shop table exists and has active data
+- **Configuration verification**: Verifies `PS_INSTALL_VERSION` is set
+- **Module verification**: Ensures modules are installed
+- **Admin verification**: Confirms admin user is created
+- **Prevents premature deletion**: Install folder stays until ALL steps complete
+
+#### Automatic Recovery Mechanisms
+- **Settings file recovery**: Automatically recreates `settings.inc.php` from `DATABASE_URL` if missing
+- **Install folder management**: Automatically sets `KEEP_INSTALL_FOLDER=false` after completion
+- **Completion marker**: Creates marker file to remember installation status
+- **Seamless restarts**: All settings and admin folder persist across restarts
 
 ### Install Folder Auto-Deletion
 

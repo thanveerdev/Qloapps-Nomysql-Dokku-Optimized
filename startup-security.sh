@@ -11,6 +11,88 @@ ADMIN_FOLDER_NAME="${ADMIN_FOLDER_NAME:-qlo-admin}"
 RENAMED_ADMIN_DIR="/var/www/html/${ADMIN_FOLDER_NAME}"
 INSTALL_DIR="/var/www/html/install"
 
+# Function to check if a directory is on persistent storage (mounted volume)
+# This checks if the directory is a mount point or on a different filesystem
+is_persistent_storage() {
+    local dir="$1"
+    if [ ! -d "$dir" ]; then
+        return 1
+    fi
+    
+    # Check if directory is a mount point
+    if mountpoint -q "$dir" 2>/dev/null; then
+        return 0
+    fi
+    
+    # Check if parent directory is a mount point (for subdirectories)
+    local parent_dir=$(dirname "$dir")
+    if mountpoint -q "$parent_dir" 2>/dev/null; then
+        return 0
+    fi
+    
+    # Check if /var/www/html is a mount point (entire app directory)
+    if mountpoint -q "/var/www/html" 2>/dev/null; then
+        return 0
+    fi
+    
+    return 1
+}
+
+# Validate persistent storage configuration
+# CRITICAL: Persistent storage is required for production deployments
+echo "Validating persistent storage configuration..."
+PERSISTENT_STORAGE_WARNINGS=0
+
+# Check critical directories that MUST be persisted
+CRITICAL_DIRS=(
+    "/var/www/html/config:CRITICAL - settings.inc.php will be lost without this"
+    "/var/www/html/img:CRITICAL - uploaded images will be lost without this"
+    "/var/www/html/upload:CRITICAL - uploaded files will be lost without this"
+)
+
+for dir_info in "${CRITICAL_DIRS[@]}"; do
+    IFS=':' read -r dir message <<< "$dir_info"
+    if ! is_persistent_storage "$dir"; then
+        echo "⚠️  WARNING: $dir is NOT on persistent storage"
+        echo "   $message"
+        PERSISTENT_STORAGE_WARNINGS=$((PERSISTENT_STORAGE_WARNINGS + 1))
+    fi
+done
+
+# Check admin folder persistence (important for security rename)
+if [ -d "$RENAMED_ADMIN_DIR" ]; then
+    if ! is_persistent_storage "$RENAMED_ADMIN_DIR"; then
+        echo "⚠️  WARNING: Admin folder ($RENAMED_ADMIN_DIR) is NOT on persistent storage"
+        echo "   Admin folder rename will be lost on container restart"
+        echo "   Recommendation: Mount persistent storage for admin folder or entire /var/www/html"
+        PERSISTENT_STORAGE_WARNINGS=$((PERSISTENT_STORAGE_WARNINGS + 1))
+    fi
+fi
+
+if [ $PERSISTENT_STORAGE_WARNINGS -gt 0 ]; then
+    echo ""
+    echo "❌ PERSISTENT STORAGE NOT PROPERLY CONFIGURED!"
+    echo "   This deployment is NOT production-ready."
+    echo ""
+    echo "   To fix, run these commands:"
+    echo ""
+    echo "   Option 1: Mount individual directories (recommended):"
+    echo "   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/config:/var/www/html/config"
+    echo "   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/img:/var/www/html/img"
+    echo "   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/upload:/var/www/html/upload"
+    echo "   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/cache:/var/www/html/cache"
+    echo "   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/log:/var/www/html/log"
+    echo ""
+    echo "   Option 2: Mount entire /var/www/html (simpler, ensures admin folder persists):"
+    echo "   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/html:/var/www/html"
+    echo ""
+    echo "   Or use the automated deploy.sh script which sets this up automatically."
+    echo ""
+else
+    echo "✅ Persistent storage validation passed - all critical directories are persisted"
+fi
+echo ""
+
 # Ensure required directories exist and have correct permissions
 # This is especially important when persistent storage is mounted
 # as it may have different ownership/permissions
@@ -33,24 +115,46 @@ chmod -R 775 /var/www/html/cache \
     /var/www/html/img \
     /var/www/html/config 2>/dev/null || true
 
-# Ensure index.php files exist in required directories (for installer file check)
-if [ ! -f /var/www/html/cache/smarty/compile/index.php ]; then
-    echo '<?php header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); header("Cache-Control: no-store, no-cache, must-revalidate"); header("Cache-Control: post-check=0, pre-check=0", false); header("Pragma: no-cache"); header("Location: ../"); exit;' > /var/www/html/cache/smarty/compile/index.php
-    chown www-data:www-data /var/www/html/cache/smarty/compile/index.php
-    chmod 644 /var/www/html/cache/smarty/compile/index.php
-fi
+# Function to create index.php security file in a directory
+create_index_php() {
+    local dir="$1"
+    local file="${dir}/index.php"
+    if [ ! -f "$file" ]; then
+        mkdir -p "$dir"
+        echo '<?php header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); header("Cache-Control: no-store, no-cache, must-revalidate"); header("Cache-Control: post-check=0, pre-check=0", false); header("Pragma: no-cache"); header("Location: ../"); exit;' > "$file"
+        chown www-data:www-data "$file" 2>/dev/null || true
+        chmod 644 "$file"
+    fi
+}
 
-if [ ! -f /var/www/html/upload/index.php ]; then
-    echo '<?php header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); header("Cache-Control: no-store, no-cache, must-revalidate"); header("Cache-Control: post-check=0, pre-check=0", false); header("Pragma: no-cache"); header("Location: ../"); exit;' > /var/www/html/upload/index.php
-    chown www-data:www-data /var/www/html/upload/index.php
-    chmod 644 /var/www/html/upload/index.php
-fi
+# Ensure index.php files exist in required directories (for installer file check)
+# These directories are checked by the installer's ConfigurationTest::test_files()
+echo "Ensuring required index.php security files exist..."
+create_index_php "/var/www/html/cache/smarty/compile"
+create_index_php "/var/www/html/upload"
+create_index_php "/var/www/html/classes/log"
+create_index_php "/var/www/html/classes/cache"
+create_index_php "/var/www/html/config"
+create_index_php "/var/www/html/css"
+create_index_php "/var/www/html/download"
+create_index_php "/var/www/html/mails"
+create_index_php "/var/www/html/modules"
+create_index_php "/var/www/html/override/controllers/front"
+create_index_php "/var/www/html/translations/export"
 
 # Rename admin folder if it exists and renamed folder doesn't exist
+# This handles both fresh containers and restarts:
+# - Fresh container: /admin exists from image, /qlo-admin doesn't exist → rename
+# - Restart with persistent storage: /qlo-admin exists, /admin doesn't exist → no action needed
+# - Restart without persistent storage: /admin recreated from image, /qlo-admin doesn't exist → rename again
 if [ -d "$ADMIN_DIR" ] && [ ! -d "$RENAMED_ADMIN_DIR" ]; then
     echo "Renaming admin folder to ${ADMIN_FOLDER_NAME} for security..."
     mv "$ADMIN_DIR" "$RENAMED_ADMIN_DIR"
     echo "Admin folder renamed to: ${ADMIN_FOLDER_NAME}"
+    echo "Access admin panel at: /${ADMIN_FOLDER_NAME}/"
+elif [ -d "$RENAMED_ADMIN_DIR" ]; then
+    # Renamed folder already exists (from previous run or persistent storage)
+    echo "Admin folder already renamed to: ${ADMIN_FOLDER_NAME}"
     echo "Access admin panel at: /${ADMIN_FOLDER_NAME}/"
 fi
 
@@ -125,10 +229,13 @@ EOF
 }
 
 # Function to check if installation is truly complete (not just started)
-# Installation is complete when:
-# 1. Database tables exist (qlo_shop, qlo_configuration)
+# Installation is complete when ALL of the following are true:
+# 1. Database tables exist (qlo_shop, qlo_configuration, qlo_module, qlo_employee)
 # 2. Configuration values are set (PS_INSTALL_VERSION)
 # 3. Modules are installed (qlo_module table has entries)
+# 4. Shop is configured (shop table has active shops)
+# 5. Admin user is created (employee table has active users)
+# This ensures ALL installation steps are finished before deleting install folder
 check_database_tables() {
     local DB_HOST DB_NAME DB_USER DB_PASSWORD DB_PREFIX
     
@@ -191,9 +298,27 @@ check_database_tables() {
                 \$has_modules = (\$row && \$row['cnt'] > 0);
             }
             
+            // Check 4: Shop has actual data (not just table exists) - ensures shop is configured
+            \$has_shop_data = false;
+            if (\$has_shop) {
+                \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM ${DB_PREFIX}shop WHERE active = 1');
+                \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
+                \$has_shop_data = (\$row && \$row['cnt'] > 0);
+            }
+            
+            // Check 5: Employee/admin user exists - ensures admin account is created
+            \$has_employee = false;
+            \$stmt = \$pdo->query('SHOW TABLES LIKE \"${DB_PREFIX}employee\"');
+            if (\$stmt->rowCount() > 0) {
+                \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM ${DB_PREFIX}employee WHERE active = 1');
+                \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
+                \$has_employee = (\$row && \$row['cnt'] > 0);
+            }
+            
             // Installation is complete only if ALL indicators are true
             // This ensures we don't delete install folder during installation
-            if (\$has_shop && \$has_config && \$has_install_version && \$has_module_table && \$has_modules) {
+            // All steps must be finished: tables created, config set, modules installed, shop configured, admin created
+            if (\$has_shop && \$has_shop_data && \$has_config && \$has_install_version && \$has_module_table && \$has_modules && \$has_employee) {
                 exit(0); // Installation complete
             }
             exit(1); // Installation not complete
@@ -238,15 +363,31 @@ if [ -d "$INSTALL_DIR" ]; then
         echo "Warning: settings.inc.php is missing. Keeping install folder to allow installation/recovery."
         echo "If installation was already complete, settings.inc.php should be recreated from DATABASE_URL on next restart."
     elif [ "$INSTALLATION_COMPLETE" = true ]; then
-        echo "Installation detected as complete. Removing install folder for security..."
+        echo "Installation detected as complete (all steps finished). Removing install folder for security..."
         rm -rf "$INSTALL_DIR"
         echo "Install folder removed successfully"
+        
+        # Automatically set KEEP_INSTALL_FOLDER=false for future restarts
+        # This ensures install folder won't be kept on next restart
+        # Note: This writes to a file that can be sourced, but Dokku env vars need to be set via dokku config
+        # For now, we'll create a marker file that indicates installation is complete
+        INSTALL_COMPLETE_MARKER="/var/www/html/.installation_complete"
+        touch "$INSTALL_COMPLETE_MARKER"
+        chown www-data:www-data "$INSTALL_COMPLETE_MARKER" 2>/dev/null || true
+        chmod 644 "$INSTALL_COMPLETE_MARKER"
+        echo "Installation completion marker created. Set KEEP_INSTALL_FOLDER=false for future restarts."
     elif [ "${KEEP_INSTALL_FOLDER:-false}" != "true" ]; then
         # Only delete if settings.inc.php exists (safety check)
         if [ -f "$SETTINGS_FILE" ]; then
-            echo "Removing install folder for security (KEEP_INSTALL_FOLDER not set to true)..."
-            rm -rf "$INSTALL_DIR"
-            echo "Install folder removed successfully"
+            # Check if installation completion marker exists (from previous successful completion)
+            INSTALL_COMPLETE_MARKER="/var/www/html/.installation_complete"
+            if [ -f "$INSTALL_COMPLETE_MARKER" ]; then
+                echo "Installation was previously completed. Removing install folder for security..."
+                rm -rf "$INSTALL_DIR"
+                echo "Install folder removed successfully"
+            else
+                echo "Keeping install folder (installation may still be in progress, no completion marker found)"
+            fi
         else
             echo "Keeping install folder (settings.inc.php missing, needed for installer)"
         fi
