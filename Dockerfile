@@ -98,18 +98,20 @@ RUN chown -R www-data:www-data /var/www/html \
     && find /var/www/html -type d -exec chmod 755 {} \; \
     && find /var/www/html -type f -exec chmod 644 {} \;
 
-# Make cache, log, upload, and config directories writable
+# Make cache, log, upload, img, and config directories writable
 # Ensure cache/smarty/compile directory exists and create required index.php files
 RUN mkdir -p /var/www/html/cache /var/www/html/log /var/www/html/upload \
-    /var/www/html/cache/smarty/compile \
+    /var/www/html/img /var/www/html/cache/smarty/compile \
     /var/log \
     && chown -R www-data:www-data /var/www/html/cache \
     /var/www/html/log \
     /var/www/html/upload \
+    /var/www/html/img \
     /var/www/html/config \
     && chmod -R 775 /var/www/html/cache \
     /var/www/html/log \
     /var/www/html/upload \
+    /var/www/html/img \
     /var/www/html/config \
     && touch /var/log/install-cleanup.log \
     && chown www-data:www-data /var/log/install-cleanup.log \

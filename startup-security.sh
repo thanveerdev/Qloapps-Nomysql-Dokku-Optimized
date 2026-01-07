@@ -2,6 +2,7 @@
 # QloApps Security Startup Script
 # This script runs on container startup to ensure security requirements are met
 
+# Don't exit on error for permission fixes (they may fail if directories don't exist yet)
 set -e
 
 ADMIN_DIR="/var/www/html/admin"
@@ -9,6 +10,41 @@ ADMIN_DIR="/var/www/html/admin"
 ADMIN_FOLDER_NAME="${ADMIN_FOLDER_NAME:-qlo-admin}"
 RENAMED_ADMIN_DIR="/var/www/html/${ADMIN_FOLDER_NAME}"
 INSTALL_DIR="/var/www/html/install"
+
+# Ensure required directories exist and have correct permissions
+# This is especially important when persistent storage is mounted
+# as it may have different ownership/permissions
+echo "Ensuring required directories exist with correct permissions..."
+mkdir -p /var/www/html/cache /var/www/html/log /var/www/html/upload \
+    /var/www/html/img /var/www/html/cache/smarty/compile \
+    /var/www/html/config
+
+# Fix permissions for directories that need to be writable by www-data
+# This handles cases where persistent storage is mounted with different permissions
+chown -R www-data:www-data /var/www/html/cache \
+    /var/www/html/log \
+    /var/www/html/upload \
+    /var/www/html/img \
+    /var/www/html/config 2>/dev/null || true
+
+chmod -R 775 /var/www/html/cache \
+    /var/www/html/log \
+    /var/www/html/upload \
+    /var/www/html/img \
+    /var/www/html/config 2>/dev/null || true
+
+# Ensure index.php files exist in required directories (for installer file check)
+if [ ! -f /var/www/html/cache/smarty/compile/index.php ]; then
+    echo '<?php header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); header("Cache-Control: no-store, no-cache, must-revalidate"); header("Cache-Control: post-check=0, pre-check=0", false); header("Pragma: no-cache"); header("Location: ../"); exit;' > /var/www/html/cache/smarty/compile/index.php
+    chown www-data:www-data /var/www/html/cache/smarty/compile/index.php
+    chmod 644 /var/www/html/cache/smarty/compile/index.php
+fi
+
+if [ ! -f /var/www/html/upload/index.php ]; then
+    echo '<?php header("Expires: Mon, 26 Jul 1997 05:00:00 GMT"); header("Last-Modified: ".gmdate("D, d M Y H:i:s")." GMT"); header("Cache-Control: no-store, no-cache, must-revalidate"); header("Cache-Control: post-check=0, pre-check=0", false); header("Pragma: no-cache"); header("Location: ../"); exit;' > /var/www/html/upload/index.php
+    chown www-data:www-data /var/www/html/upload/index.php
+    chmod 644 /var/www/html/upload/index.php
+fi
 
 # Rename admin folder if it exists and renamed folder doesn't exist
 if [ -d "$ADMIN_DIR" ] && [ ! -d "$RENAMED_ADMIN_DIR" ]; then
