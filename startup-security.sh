@@ -32,57 +32,74 @@ INSTALLATION_COMPLETE=false
 check_database_tables() {
     local DB_HOST DB_NAME DB_USER DB_PASSWORD DB_PREFIX
     
-    # Try to get database credentials from settings.inc.php
+    # Try to get database credentials from settings.inc.php first
     if [ -f "$SETTINGS_FILE" ]; then
         DB_HOST=$(grep "_DB_SERVER_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
         DB_NAME=$(grep "_DB_NAME_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
         DB_USER=$(grep "_DB_USER_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
         DB_PASSWORD=$(grep "_DB_PASSWD_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
         DB_PREFIX=$(grep "_DB_PREFIX_" "$SETTINGS_FILE" | sed "s/.*'\(.*\)'.*/\1/" | head -1)
-        
-        # If we have credentials, check multiple indicators of FULL installation completion
-        if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ]; then
-            # Use PHP to check multiple conditions (more reliable in container)
-            php -r "
-            require '$SETTINGS_FILE';
-            try {
-                \$pdo = new PDO('mysql:host='._DB_SERVER_.';dbname='._DB_NAME_, _DB_USER_, _DB_PASSWD_);
-                
-                // Check 1: Shop table exists (early indicator)
-                \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'shop\'');
-                \$has_shop = \$stmt->rowCount() > 0;
-                
-                // Check 2: Configuration table exists and has PS_INSTALL_VERSION (mid indicator)
-                \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'configuration\'');
-                \$has_config = \$stmt->rowCount() > 0;
-                \$has_install_version = false;
-                if (\$has_config) {
-                    \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM '._DB_PREFIX_.'configuration WHERE name = \"PS_INSTALL_VERSION\" AND value IS NOT NULL AND value != \"\"');
-                    \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
-                    \$has_install_version = (\$row && \$row['cnt'] > 0);
-                }
-                
-                // Check 3: Module table exists and has entries (late indicator - modules installed)
-                \$stmt = \$pdo->query('SHOW TABLES LIKE \''._DB_PREFIX_.'module\'');
-                \$has_module_table = \$stmt->rowCount() > 0;
-                \$has_modules = false;
-                if (\$has_module_table) {
-                    \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM '._DB_PREFIX_.'module');
-                    \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
-                    \$has_modules = (\$row && \$row['cnt'] > 0);
-                }
-                
-                // Installation is complete only if ALL indicators are true
-                // This ensures we don't delete install folder during installation
-                if (\$has_shop && \$has_config && \$has_install_version && \$has_module_table && \$has_modules) {
-                    exit(0); // Installation complete
-                }
-                exit(1); // Installation not complete
-            } catch (Exception \$e) {
-                exit(1);
-            }
-            " 2>/dev/null && return 0
+    fi
+    
+    # If no credentials from settings.inc.php, try to parse from DATABASE_URL
+    if [ -z "$DB_HOST" ] && [ -n "$DATABASE_URL" ]; then
+        DB_URL="${DATABASE_URL#mysql://}"
+        if [[ "$DB_URL" =~ ^([^:]+):([^@]+)@([^/]+)/(.+)$ ]]; then
+            DB_USER="${BASH_REMATCH[1]}"
+            DB_PASSWORD="${BASH_REMATCH[2]}"
+            DB_HOST_PORT="${BASH_REMATCH[3]}"
+            DB_NAME="${BASH_REMATCH[4]}"
+            
+            if [[ "$DB_HOST_PORT" =~ ^([^:]+):(.+)$ ]]; then
+                DB_HOST="${BASH_REMATCH[1]}"
+            else
+                DB_HOST="$DB_HOST_PORT"
+            fi
+            DB_PREFIX="qlo_"
         fi
+    fi
+    
+    # If we have credentials, check multiple indicators of FULL installation completion
+    if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ]; then
+        # Use PHP to check multiple conditions (more reliable in container)
+        php -r "
+        try {
+            \$pdo = new PDO('mysql:host=${DB_HOST};dbname=${DB_NAME}', '${DB_USER}', '${DB_PASSWORD}');
+            
+            // Check 1: Shop table exists (early indicator)
+            \$stmt = \$pdo->query('SHOW TABLES LIKE \"${DB_PREFIX}shop\"');
+            \$has_shop = \$stmt->rowCount() > 0;
+            
+            // Check 2: Configuration table exists and has PS_INSTALL_VERSION (mid indicator)
+            \$stmt = \$pdo->query('SHOW TABLES LIKE \"${DB_PREFIX}configuration\"');
+            \$has_config = \$stmt->rowCount() > 0;
+            \$has_install_version = false;
+            if (\$has_config) {
+                \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM ${DB_PREFIX}configuration WHERE name = \"PS_INSTALL_VERSION\" AND value IS NOT NULL AND value != \"\"');
+                \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
+                \$has_install_version = (\$row && \$row['cnt'] > 0);
+            }
+            
+            // Check 3: Module table exists and has entries (late indicator - modules installed)
+            \$stmt = \$pdo->query('SHOW TABLES LIKE \"${DB_PREFIX}module\"');
+            \$has_module_table = \$stmt->rowCount() > 0;
+            \$has_modules = false;
+            if (\$has_module_table) {
+                \$stmt = \$pdo->query('SELECT COUNT(*) as cnt FROM ${DB_PREFIX}module');
+                \$row = \$stmt->fetch(PDO::FETCH_ASSOC);
+                \$has_modules = (\$row && \$row['cnt'] > 0);
+            }
+            
+            // Installation is complete only if ALL indicators are true
+            // This ensures we don't delete install folder during installation
+            if (\$has_shop && \$has_config && \$has_install_version && \$has_module_table && \$has_modules) {
+                exit(0); // Installation complete
+            }
+            exit(1); // Installation not complete
+        } catch (Exception \$e) {
+            exit(1);
+        }
+        " 2>/dev/null && return 0
     fi
     return 1
 }
@@ -162,6 +179,14 @@ else
     # before installation starts, so we must verify database tables exist
     INSTALLATION_COMPLETE=false
     echo "Installation not complete: Database tables not found or not accessible"
+    
+    # If settings.inc.php exists but tables don't, delete it so installer can run
+    # This prevents the app from trying to use a database that isn't set up yet
+    if [ -f "$SETTINGS_FILE" ]; then
+        echo "Removing settings.inc.php to allow installer to run (database not yet installed)..."
+        rm -f "$SETTINGS_FILE"
+        echo "Settings file removed - installer will create it during installation"
+    fi
 fi
 
 # Delete install folder logic:
