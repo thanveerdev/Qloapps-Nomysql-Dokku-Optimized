@@ -180,12 +180,10 @@ else
     INSTALLATION_COMPLETE=false
     echo "Installation not complete: Database tables not found or not accessible"
     
-    # If settings.inc.php exists but tables don't, delete it so installer can run
-    # This prevents the app from trying to use a database that isn't set up yet
+    # Keep settings.inc.php if it exists from DATABASE_URL so installer can auto-detect credentials
+    # The QloApps installer will read settings.inc.php and pre-fill the database form
     if [ -f "$SETTINGS_FILE" ]; then
-        echo "Removing settings.inc.php to allow installer to run (database not yet installed)..."
-        rm -f "$SETTINGS_FILE"
-        echo "Settings file removed - installer will create it during installation"
+        echo "Keeping settings.inc.php - installer will use these database credentials"
     fi
 fi
 
