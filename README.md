@@ -18,6 +18,7 @@ Optimized QloApps Docker image designed for Dokku deployment without MySQL, SSH,
 - ✅ **Automated deployment**: Includes `deploy.sh` script for one-command setup (MySQL + persistent storage)
 - ✅ **Enhanced security**: Admin folder automatically renamed to `qlo-admin` (configurable)
 - ✅ **Persistent storage validation**: Automatically validates and warns if persistent storage is missing
+- ✅ **Automatic persistent storage initialization**: Automatically copies essential files from image backup when persistent storage is empty (prevents HTTP 500 errors on first deployment)
 - ✅ **Advanced installation detection**: Multi-factor verification ensures installation is 100% complete before cleanup
 - ✅ **Automatic recovery**: Settings file recovery from DATABASE_URL if missing
 - ✅ **Seamless restarts**: Admin folder and all settings persist across container restarts
@@ -103,7 +104,9 @@ This ensures:
 - **`cache/`**: Cache files persist (optional, can be regenerated)
 - **`log/`**: Log files persist
 
-**Note:** If `config/` is not persisted and `settings.inc.php` is missing on restart, the startup script will automatically recreate it from `DATABASE_URL` as a recovery mechanism (only if installation is already complete). However, using persistent storage is the recommended approach.
+**Note:** 
+- If `config/` is not persisted and `settings.inc.php` is missing on restart, the startup script will automatically recreate it from `DATABASE_URL` as a recovery mechanism (only if installation is already complete). However, using persistent storage is the recommended approach.
+- **Automatic Initialization**: When persistent storage is mounted for the first time, the startup script automatically copies essential files (including `config.inc.php`) from the image backup to the persistent storage directories. This prevents HTTP 500 errors and ensures the application works immediately after deployment without manual file copying.
 
 #### 4. Configure Domain
 
@@ -659,6 +662,7 @@ For issues related to:
 **QloApps Version**: 1.7.0.0  
 **Docker Image**: Available on Docker Hub at `thanveerdev/qloapps-nomysql-dokku-optimized`  
 **Latest Updates**: 
+- ✅ **Fixed persistent storage initialization**: Automatically copies essential files from image backup when persistent storage is empty (prevents HTTP 500 errors on first deployment)
 - ✅ Added automated deployment script (`deploy.sh`) for one-command setup
 - ✅ Added persistent storage configuration for img, upload, cache, and log directories
 - ✅ Improved installation documentation with Quick Start guide
