@@ -74,18 +74,29 @@ This automatically sets the `DATABASE_URL` environment variable.
 
 #### 3. Set Up Persistent Storage (Recommended)
 
+**Important:** Persistent storage is critical for production deployments. Without it, `config/settings.inc.php` and other important files will be lost on container restart.
+
 ```bash
 # Create storage directories
-mkdir -p /var/lib/dokku/data/storage/qloapps/{img,upload,cache,log}
+mkdir -p /var/lib/dokku/data/storage/qloapps/{config,img,upload,cache,log}
 
 # Mount persistent storage
+# CRITICAL: config/ directory must be persisted to keep settings.inc.php
+dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/config:/var/www/html/config
 dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/img:/var/www/html/img
 dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/upload:/var/www/html/upload
 dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/cache:/var/www/html/cache
 dokku storage:mount qloapps /var/lib/dokku/data/storage/qloapps/log:/var/www/html/log
 ```
 
-This ensures uploaded files, images, cache, and logs persist across deployments.
+This ensures:
+- **`config/`**: Database configuration (`settings.inc.php`) persists across restarts (CRITICAL)
+- **`img/`**: Uploaded images persist
+- **`upload/`**: Uploaded files persist
+- **`cache/`**: Cache files persist (optional, can be regenerated)
+- **`log/`**: Log files persist
+
+**Note:** If `config/` is not persisted and `settings.inc.php` is missing on restart, the startup script will automatically recreate it from `DATABASE_URL` as a recovery mechanism (only if installation is already complete). However, using persistent storage is the recommended approach.
 
 #### 4. Configure Domain
 
