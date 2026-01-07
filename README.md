@@ -416,7 +416,14 @@ The install folder is automatically deleted after installation is complete for s
 
 **How It Works:**
 - A background daemon runs continuously and checks every 30 seconds if installation is complete
-- The system detects installation completion by checking for database configuration in `config/settings.inc.php` (or `config/config.inc.php` as fallback)
+- The system uses **multiple verification checks** to ensure installation is truly complete:
+  - ✅ Shop table exists (`qlo_shop`)
+  - ✅ Configuration table exists (`qlo_configuration`)
+  - ✅ `PS_INSTALL_VERSION` is set in configuration
+  - ✅ Module table exists (`qlo_module`)
+  - ✅ Modules are installed (module table has entries)
+- Installation is only considered complete when **ALL** indicators are true
+- This prevents premature deletion during the installation process
 - Once installation is detected as complete, the install folder is automatically removed within 30 seconds
 - The daemon exits automatically after successful deletion
 
