@@ -151,6 +151,15 @@ Breaking it down:
 
 **Note:** If you want to use completely different database settings, simply edit the form fields. The installer will use whatever values you enter, not the pre-filled ones.
 
+**Install Folder Auto-Deletion:**
+
+The install folder is automatically deleted after installation completes for security. The system uses intelligent detection to ensure installation is truly complete:
+
+- **Multiple verification checks**: The system verifies that shop tables, configuration tables, `PS_INSTALL_VERSION`, and installed modules all exist
+- **Prevents premature deletion**: The install folder stays available through all installation steps (including module and addon installation)
+- **Automatic cleanup**: Once all installation steps are verified complete, the install folder is automatically removed within 30 seconds
+- **Background monitoring**: A cleanup daemon runs continuously and checks every 30 seconds until installation is complete
+
 ## 🐳 Docker Hub Usage
 
 ### Pull the Image
