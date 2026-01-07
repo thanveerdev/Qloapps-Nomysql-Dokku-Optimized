@@ -142,6 +142,28 @@ RUN chmod +x /usr/local/bin/cleanup-install-daemon.sh
 COPY generate-env.sh /usr/local/bin/generate-env.sh
 RUN chmod +x /usr/local/bin/generate-env.sh
 
+# Backup essential files to a location that won't be mounted
+# This allows us to restore them when persistent storage is empty
+# CRITICAL: config/ directory must be backed up as it contains config.inc.php
+RUN mkdir -p /usr/local/qloapps-backup/{config,img,upload,cache,log} \
+    && if [ -d /var/www/html/config ] && [ -n "$(ls -A /var/www/html/config 2>/dev/null)" ]; then \
+        cp -a /var/www/html/config/* /usr/local/qloapps-backup/config/; \
+    fi \
+    && if [ -d /var/www/html/img ] && [ -n "$(ls -A /var/www/html/img 2>/dev/null)" ]; then \
+        cp -a /var/www/html/img/* /usr/local/qloapps-backup/img/; \
+    fi \
+    && if [ -d /var/www/html/upload ] && [ -n "$(ls -A /var/www/html/upload 2>/dev/null)" ]; then \
+        cp -a /var/www/html/upload/* /usr/local/qloapps-backup/upload/; \
+    fi \
+    && if [ -d /var/www/html/cache ] && [ -n "$(ls -A /var/www/html/cache 2>/dev/null)" ]; then \
+        cp -a /var/www/html/cache/* /usr/local/qloapps-backup/cache/; \
+    fi \
+    && if [ -d /var/www/html/log ] && [ -n "$(ls -A /var/www/html/log 2>/dev/null)" ]; then \
+        cp -a /var/www/html/log/* /usr/local/qloapps-backup/log/; \
+    fi \
+    && chown -R www-data:www-data /usr/local/qloapps-backup \
+    && chmod -R 755 /usr/local/qloapps-backup
+
 # Expose port 80
 EXPOSE 80
 

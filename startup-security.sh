@@ -99,34 +99,34 @@ echo ""
 echo "Checking for empty persistent storage directories..."
 
 # Function to initialize empty persistent storage directory
-# This copies files from image to persistent storage if directory is empty
+# This copies files from image backup to persistent storage if directory is empty
 initialize_persistent_dir() {
     local target_dir="$1"
-    local source_dir="/var/www/html.original/$2"
+    local backup_dir="/usr/local/qloapps-backup/$2"
     
     # Only initialize if directory is mounted and empty
     if mountpoint -q "$target_dir" 2>/dev/null; then
         # Check if directory is empty (only . and ..)
         if [ -d "$target_dir" ] && [ -z "$(ls -A "$target_dir" 2>/dev/null)" ]; then
             echo "Initializing empty persistent storage: $target_dir"
-            # Copy from original location if it exists
-            if [ -d "$source_dir" ]; then
-                cp -a "$source_dir"/* "$target_dir"/ 2>/dev/null || true
+            # Copy from backup location if it exists
+            if [ -d "$backup_dir" ] && [ -n "$(ls -A "$backup_dir" 2>/dev/null)" ]; then
+                cp -a "$backup_dir"/* "$target_dir"/ 2>/dev/null || true
+                # Ensure proper permissions
+                chown -R www-data:www-data "$target_dir" 2>/dev/null || true
+                chmod -R 755 "$target_dir" 2>/dev/null || true
                 echo "   ✓ Copied files to $target_dir"
+            else
+                echo "   ⚠️  Warning: Backup directory $backup_dir is empty or missing"
             fi
         fi
     fi
 }
 
-# Store original files location before any mounts (if not already stored)
-# This is a fallback - in practice, files should be in the image
-ORIGINAL_HTML="/var/www/html.original"
-if [ ! -d "$ORIGINAL_HTML" ]; then
-    # Try to access files from image (they might be in overlay filesystem)
-    # For now, we'll handle this by checking if directories are empty
-    # and creating required structure
-    :
-fi
+# Backup location for essential files (created during Docker build)
+# These files are copied to /usr/local/qloapps-backup/ during image build
+# so they're available even when persistent storage is mounted and empty
+BACKUP_BASE="/usr/local/qloapps-backup"
 
 # Initialize persistent storage directories if empty
 # Note: This handles the case where persistent storage is mounted but empty
