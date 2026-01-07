@@ -564,5 +564,9 @@ For issues related to:
 
 **Last Updated**: January 2026  
 **QloApps Version**: 1.7.0.0  
-**Docker Image**: Available on Docker Hub  
-**Latest Fix**: Fixed HTTP 500 errors on first deployment by automatically managing settings.inc.php based on installation status
+**Docker Image**: Available on Docker Hub at `thanveerdev/qloapps-nomysql-dokku-optimized`  
+**Latest Updates**: 
+- ✅ Added automated deployment script (`deploy.sh`) for one-command setup
+- ✅ Added persistent storage configuration for img, upload, cache, and log directories
+- ✅ Improved installation documentation with Quick Start guide
+- ✅ Fixed HTTP 500 errors on first deployment by automatically managing settings.inc.php based on installation status
