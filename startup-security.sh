@@ -158,12 +158,10 @@ if check_database_tables; then
     INSTALLATION_COMPLETE=true
     echo "Installation verified complete: Database tables found"
 else
-    # Fallback: check if settings.inc.php exists AND install folder is missing
-    # (indicates installation was completed previously)
-    if [ -f "$SETTINGS_FILE" ] && [ ! -d "$INSTALL_DIR" ]; then
-        INSTALLATION_COMPLETE=true
-        echo "Installation appears complete: settings.inc.php exists and install folder removed"
-    fi
+    # Don't use fallback check - settings.inc.php can exist from DATABASE_URL
+    # before installation starts, so we must verify database tables exist
+    INSTALLATION_COMPLETE=false
+    echo "Installation not complete: Database tables not found or not accessible"
 fi
 
 # Delete install folder logic:
