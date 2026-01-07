@@ -337,6 +337,38 @@ dokku config:show qloapps
 
 ### HTTP 500 Errors on First Access
 
+**Most Common Cause: Empty Persistent Storage**
+
+If you mounted the entire `/var/www/html` directory and it's empty, you'll get HTTP 500 errors because all application files are missing.
+
+**Solution:**
+1. Unmount the empty storage:
+   ```bash
+   dokku storage:unmount APP_NAME /var/www/html
+   ```
+
+2. Use individual directory mounts instead (recommended):
+   ```bash
+   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/config:/var/www/html/config
+   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/img:/var/www/html/img
+   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/upload:/var/www/html/upload
+   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/cache:/var/www/html/cache
+   dokku storage:mount APP_NAME /var/lib/dokku/data/storage/APP_NAME/log:/var/www/html/log
+   ```
+
+3. Restart the app:
+   ```bash
+   dokku ps:restart APP_NAME
+   ```
+
+**Why Individual Mounts Are Better:**
+- Only persist data directories (config, img, upload, cache, log)
+- Application files remain in the Docker image
+- No risk of empty mounts causing HTTP 500 errors
+- Easier to manage and backup
+
+**Other Causes:**
+
 If you see HTTP 500 errors when first accessing the app after deployment:
 
 **Cause:** The app may be trying to use `settings.inc.php` before the database tables are created.
@@ -549,6 +581,13 @@ Multi-factor verification ensures installation is 100% complete before cleanup:
 - **Install folder management**: Automatically sets `KEEP_INSTALL_FOLDER=false` after completion
 - **Completion marker**: Creates marker file to remember installation status
 - **Seamless restarts**: All settings and admin folder persist across restarts
+
+#### Empty Persistent Storage Detection
+Prevents HTTP 500 errors from empty persistent storage mounts:
+- **Automatic detection**: Detects if `/var/www/html` is mounted but empty
+- **Clear error messages**: Shows exact problem and solution
+- **Safe defaults**: Individual directory mounts recommended (only persist data)
+- **Application files preserved**: Files remain in image, only data is persisted
 
 ### Install Folder Auto-Deletion
 
