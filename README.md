@@ -46,9 +46,11 @@ git push dokku main
 The `deploy.sh` script automatically:
 - ✅ Creates the Dokku app
 - ✅ Creates and links MySQL service
-- ✅ Sets up persistent storage for img, upload, cache, and log directories
+- ✅ Sets up persistent storage for config, img, upload, cache, and log directories
 - ✅ Configures the domain
 - ✅ Displays all connection information
+
+**Note:** The `config/` directory is included in persistent storage to ensure `settings.inc.php` persists across container restarts.
 
 ### Manual Installation
 
