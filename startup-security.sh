@@ -100,46 +100,34 @@ echo ""
 echo "Checking for empty persistent storage directories..."
 
 # Function to initialize empty persistent storage directory
-# This copies files from image to persistent storage if directory is empty
-# Note: When /var/www/html is mounted, files are in the overlay filesystem
-# We need to access them before the mount point takes over
+# This copies files from image backup to persistent storage if directory is empty
 initialize_persistent_dir() {
     local target_dir="$1"
-    local dir_name="$2"
+    local backup_dir="/usr/local/qloapps-backup/$2"
     
     # Only initialize if directory is mounted and empty
     if mountpoint -q "$target_dir" 2>/dev/null; then
         # Check if directory is empty (only . and ..)
         if [ -d "$target_dir" ] && [ -z "$(ls -A "$target_dir" 2>/dev/null)" ]; then
             echo "Initializing empty persistent storage: $target_dir"
-            # Try to copy from the image's original location
-            # When a mount point is created, the original files are still accessible
-            # via the overlay filesystem, but we need to access them differently
-            # For now, create minimal required structure
-            if [ "$dir_name" = "config" ]; then
-                # Config directory needs to exist but can be empty initially
-                mkdir -p "$target_dir"
-                echo "   ✓ Created $target_dir directory"
-            elif [ "$dir_name" = "img" ] || [ "$dir_name" = "upload" ]; then
-                # These directories should exist but can be empty
-                mkdir -p "$target_dir"
-                create_index_php "$target_dir"
-                echo "   ✓ Created $target_dir directory with index.php"
-            elif [ "$dir_name" = "cache" ]; then
-                mkdir -p "$target_dir/smarty/compile"
-                create_index_php "$target_dir/smarty/compile"
-                echo "   ✓ Created $target_dir directory structure"
-            elif [ "$dir_name" = "log" ]; then
-                mkdir -p "$target_dir"
-                echo "   ✓ Created $target_dir directory"
+            # Copy from backup location if it exists
+            if [ -d "$backup_dir" ] && [ -n "$(ls -A "$backup_dir" 2>/dev/null)" ]; then
+                cp -a "$backup_dir"/* "$target_dir"/ 2>/dev/null || true
+                # Ensure proper permissions
+                chown -R www-data:www-data "$target_dir" 2>/dev/null || true
+                chmod -R 755 "$target_dir" 2>/dev/null || true
+                echo "   ✓ Copied files to $target_dir"
+            else
+                echo "   ⚠️  Warning: Backup directory $backup_dir is empty or missing"
             fi
         fi
     fi
 }
 
-# Note: When persistent storage is mounted, the original files from the image
-# are still in the overlay filesystem but become inaccessible at the mount point.
-# The initialization function above creates minimal required structure for empty mounts.
+# Backup location for essential files (created during Docker build)
+# These files are copied to /usr/local/qloapps-backup/ during image build
+# so they're available even when persistent storage is mounted and empty
+BACKUP_BASE="/usr/local/qloapps-backup"
 
 # Initialize persistent storage directories if empty
 # Note: This handles the case where persistent storage is mounted but empty
